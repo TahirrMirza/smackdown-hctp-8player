@@ -27,14 +27,35 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 
 ## Known issues — please read
 
-- **Only a full 8 human players is supported right now.** With fewer humans or with **ALL COM**, the two wrestler-select screens do not complete correctly (only part of the wrestlers get picked, or the second screen hangs). Choose **8 PLAYERS**.
-- The in-match HUD shows only **6 health cards** (wrestlers 7 and 8 have none).
-- The **PLAY summary** screen before the match lists only 6 names.
-- There is **no referee** in the 8-wrestler matches (slot 6 is a wrestler).
-- On the SmackDown-icons page of a wrestler panel there is no frame. This is how the game draws that page, also in the unmodified game.
-- Real PS2: the image is a dual-layer DVD (4.5 GB). Booting it from a drive with a loader such as Open PS2 Loader is the easy way; see `docs/RUNNING.md`.
+**Only two match types support 8 players, and only with a full 8 human players.** Every other mode is unchanged and limited to 6, as in the original game. Do not expect other modes to work with 8.
 
-More detail in `docs/KNOWN_ISSUES.md`.
+| Issue | Status |
+| --- | --- |
+| **Only LADDER "4 PLAYER ROYAL BATTLE" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
+| **Fewer than 8 humans or ALL COM is broken** in those two modes. With 1 player or ALL COM only part of the wrestlers get picked; with 6 players the second select screen hangs. Choose **8 PLAYERS**. | open, see [KNOWN_ISSUES](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md) |
+| **HUD shows only 6 health cards.** Wrestlers 7 and 8 have none. | open, see below |
+| **PLAY summary screen lists only 6 names.** | open |
+| **No referee** in the 8-wrestler matches. | by design, see below |
+| COM slots 7/8 may get the same default wrestler as slot 6 when not picked. | open |
+| The SmackDown-icons page of a panel has no frame. | not a bug: the original game does the same |
+
+### Why only 6 health cards
+
+The in-match HUD (`caSd5Game2D` and `CSpriteCtrlGame2D`) is built for six wrestlers: six fixed plate positions (two columns, top and bottom rows) and many per-plate arrays and loops of size 6. Making it draw eight is not just a table change. What we tried:
+
+- **Scaling the whole HUD** toward the screen corners with a hook on the matrix multiply used by 2D drawing. This works: the six cards shrink to 50–75 % and stay in their corners.
+- **A second row for wrestlers 7 and 8**, either by building a second HUD object or by swapping slot data and drawing the HUD twice. Both failed:
+  - A second HUD object loaded its own data, which made the wrestlers invisible and the crowd and music disappear.
+  - Running the HUD update twice per frame has side effects (pause state, controller removal, timer, ring-out counter), which gave glitches: a stuck "Hit any button repeatedly" prompt, a "DQ" text in the middle of the screen and a ring-out count that stayed on screen.
+  - Cards for slots 7 and 8 were never initialised, because the game builds the plates once in the constructor.
+
+So the character layout and the rest of the UI break as soon as the HUD is forced to eight. A clean solution has to extend the HUD arrays, plate position tables and loops properly instead of drawing it twice. Details and addresses are in the [dev log](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/DEV_LOG.md) (sections 19, 20, 22) and in [KNOWN_ISSUES](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md).
+
+### Why there is no referee
+
+The game keeps eight character slots: six wrestlers, one referee (slot 6) and one spare. For eight wrestlers the referee slot is used by a wrestler, so there is no referee object. Testing showed this does not stop matches: with the referee flag off, an AI match still ended with a winner by pinfall or finish, and the referee's actions are performed by game rules independently of the referee model. (Count-outs, disqualifications and submissions were not tested exhaustively. A referee model still appears in the post-match cutscene.)
+
+Real PS2: the image is a dual-layer DVD (4.5 GB). Booting it from a drive with a loader such as Open PS2 Loader is the easy way; see [RUNNING.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/RUNNING.md).
 
 ## What you need
 
@@ -71,11 +92,22 @@ Raw `.bin/.cue` images (2352-byte sectors) are not supported: convert them to a 
 
 ## Play
 
-Short version (details: `docs/RUNNING.md`):
+Short version (details: [RUNNING.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/RUNNING.md)):
 
 1. **PCSX2:** Settings → Controllers: enable **Multitap on Port 1 and Port 2**, bind pads 1A–1D and 2A–2D. Boot the patched ISO (System → Start File).
 2. **Real PS2:** put the ISO on a USB/SMB/HDD drive and boot with Open PS2 Loader.
 3. In the game: Exhibition → **LADDER → 4 PLAYER ROYAL BATTLE**, or **SURVIVAL → 8-MAN BATTLE ROYAL** → choose **8 PLAYERS** → assign the eight pads on the position screen → pick wrestlers on the two select screens → stage → play.
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [RUNNING.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/RUNNING.md) | PCSX2 and real PS2 (Open PS2 Loader) instructions, test list |
+| [HOW_IT_WORKS.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/HOW_IT_WORKS.md) | design of the patch, with addresses |
+| [GHIDRA.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/GHIDRA.md) | load the game in Ghidra, analyse it, turn findings into patches |
+| [KNOWN_ISSUES.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md) | open problems, causes and ideas |
+| [DEV_LOG.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/DEV_LOG.md) | the full chronological reverse-engineering log |
+| [CONTRIBUTING.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) | how to help, wanted work, Elimination Chamber notes |
 
 ## Repository layout
 
@@ -86,12 +118,9 @@ src/asm.py            tiny MIPS (R5900 subset) assembler used by the generator
 src/remap_*.py        rewrite field offsets in three UI classes whose objects had to grow
 src/base_patches.txt  hand-written base patches (player-count menu strings and lists)
 src/padlayout_rows.json  672 bytes of UI box coordinates (float bit patterns) recorded from the running game for the pad-select popup; positions only
-tools/                reverse-engineering helpers (disassembler, jal finder, symbol dump, dead-code finder, PINE client, patch checker)
+tools/                reverse-engineering helpers (extractor, disassembler, jal finder, symbol dump, dead-code finder, PINE client, patch checker)
 tools/monitors/       scripts that watch a running PCSX2 through PINE
-docs/HOW_IT_WORKS.md  design of the patch, with addresses
-docs/RUNNING.md       emulator and real-hardware instructions
-docs/KNOWN_ISSUES.md  open problems and ideas
-docs/DEV_LOG.md       the full chronological reverse-engineering log
+docs/                 the documents listed above
 ```
 
 ## For developers
@@ -100,7 +129,13 @@ docs/DEV_LOG.md       the full chronological reverse-engineering log
 - The patch uses **unreferenced library functions as code caves** (the executable has no free space). `tools/deadcode.py` finds them, `tools/check_patch.py` checks that no patch touches a function that is still called.
 - Debug workflow: patch → build ISO → boot in PCSX2 → watch memory through PINE (`tools/pine.py`, `tools/monitors/`). PINE data writes into the cave pages and live code patching crash PCSX2; use it read-only.
 - Tools read the executable from `$HCTP_ELF` (default `./SLUS_207.87`). `tools/syms.py` writes `symbols.txt`, which `tools/deadcode.py` needs. Do not commit these files.
-- Ghidra with the EmotionEngine plugin was used for the decompilation (not included, it is derived from the game).
+- Ghidra with the EmotionEngine plugin was used for the decompilation (not included, it is derived from the game). How to set it up: [GHIDRA.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/GHIDRA.md).
+
+## Contributing
+
+**Contributions are welcome**: fixes for the known issues, support for more match types, documentation, and test reports from real hardware. Start with [CONTRIBUTING.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md).
+
+The hardest open item is the **Elimination Chamber**: it has only four pods, and in the original two wrestlers start in the ring and four wait in the pods. Eight wrestlers need a very different layout (for example four in the ring and four in the pods, or two per pod). Ideas on how the layout could look and how to implement it are very welcome; see the notes in [CONTRIBUTING.md](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md#the-hard-one-elimination-chamber) and open an issue or pull request.
 
 ## License
 
