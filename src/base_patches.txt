@@ -1,0 +1,76 @@
+# 8th wrestler (slot 7) load test, direct ELF patches
+001FDF4C w 2A230008   # MakeGameLoad_Char loop 7 -> 8
+001FF080 w 2A620008   # GameMem::Setup per-slot page loop 7 -> 8
+001FF00C w 2A610008   # empty-slot reserve s3<6 -> s3<8
+001FF004 w 00000000   # nop mode==6 check
+001FF018 w 24120350   # empty-slot page 480 KB -> 848 KB
+00130FA4 w 0C044198   # SetCommon: jal cave (replaces sh v0,8874(at) = slot7 id 0x639c)
+# cave = dead function sceWrite (0x110660, 704 B, no callers/pointers): init slot 7 = COM wrestler id 801, team 1, pad 7
+00202BB8 w 24060020   # SetupCharTexBuf memset 0x1c -> 0x20
+00202C68 w 2E030008   # SetupCharTexBuf loop <7 -> <8
+00202C94 w 24050020   # SetupMatchMenuCharTexBuf clear 0x1c -> 0x20
+00202D40 w 2E230008   # ReleaseCharTexBuf loop <7 -> <8
+00299760 w 2A630007   # DrawMarker: skip slot 7 (no marker model for it)
+00299574 w 2C830007   # DrawMarker partner: sltiu v1,a0,7
+00299578 w 10600078   # beq v1,zero,skip (skip if partner idx -1 or >=7)
+# cave v2: slots 6 and 7 = COM wrestlers (ids 802, 801); referee loop then finds no empty slot
+00110660 w 3C010049   # lui at,0x49
+00110664 w 24020320   # addiu v0,zero,802
+00110668 w A422228A   # sh v0,0x228a(at)  id
+0011066C w 24020001   # addiu v0,zero,1
+00110670 w A0222288   # sb v0,COM flag
+00110674 w 24020000   # addiu v0,zero,0
+00110678 w A0222289   # sb v0,team
+0011067C w 24020006   # addiu v0,zero,6
+00110680 w A0222280   # sb v0,pad
+00110684 w 2402FFFF   # addiu v0,zero,-1
+00110688 w A0222292   # sb v0,0xff
+0011068C w 24020321   # addiu v0,zero,801
+00110690 w A42222AA   # sh v0,0x22aa(at)  id
+00110694 w 24020001   # addiu v0,zero,1
+00110698 w A02222A8   # sb v0,COM flag
+0011069C w 24020001   # addiu v0,zero,1
+001106A0 w A02222A9   # sb v0,team
+001106A4 w 24020007   # addiu v0,zero,7
+001106A8 w A02222A0   # sb v0,pad
+001106AC w 2402FFFF   # addiu v0,zero,-1
+001106B0 w A02222B2   # sb v0,0xff
+001106B4 w 03E00008   # jr ra
+001106B8 w 00000000   # nop
+
+# ---- UI #1: player-count list gets 7 PLAYERS / 8 PLAYERS (data in dead sceWrite 0x1106C0..) ----
+001106C0 3720504c415945525300000000000000   # string 7 PLAYERS
+001106D0 3820504c415945525300000000000000   # string 8 PLAYERS
+0040E558 w 001106C0   # string id 378 -> 7 PLAYERS
+0040E570 w 001106D0   # string id 384 -> 8 PLAYERS
+001106E0 w 00000045
+001106E4 w 00000046
+001106E8 w 00000047
+001106EC w 00000048
+001106F0 w 00000049
+001106F4 w 0000004A
+001106F8 w 0000017A
+001106FC w 0000004B
+00110700 w 00000045
+00110704 w 00000046
+00110708 w 00000047
+0011070C w 00000048
+00110710 w 00000049
+00110714 w 0000004A
+00110718 w 0000017A
+0011071C w 00000180
+00110720 w 0000004B
+0040EE14 w 001106E0   # entryItemsTbl[5] (7 players) -> list
+0040EE18 w 00110700   # entryItemsTbl[6] (8 players) -> list
+00131D9C w 3C040011   # lui a0,hi(items)
+00131DA4 w 24840740   # addiu a0,a0,lo
+00131DA8 w 24050050   # AMemClear size 0x50
+00131DC0 w 3C030011   # lui v1,hi
+00131DF4 w 24630740   # addiu v1,v1,lo
+00131E54 w 3C040011   # lui a0,hi
+00131E60 w 24840740   # addiu a0,a0,lo
+00131EAC w 3C050011   # lui a1,hi
+00131EC0 w 24A50740   # addiu a1,a1,lo
+00131E48 w 2A020008   # pad scan loop <8
+
+0045B581 08   # record 49 (LADDER triple threat tornado tag): max players 8
