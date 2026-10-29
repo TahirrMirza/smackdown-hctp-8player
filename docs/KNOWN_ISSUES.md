@@ -11,11 +11,11 @@
 4. No referee in the 8-wrestler matches (slot 6, the referee slot, is a wrestler). Matches still end by pin/finish; count-outs, DQ and submissions not exhaustively tested.
 5. Computer slots 7/8 default to the same wrestler as slot 6 when not picked.
 6. Elimination Chamber (4 pods, 2 wrestlers start in the ring) needs a new layout, see CONTRIBUTING.md.
-7. Only two match types use the 8-player flow (records 72 and 85). Two more unused records exist (13, 40).
+7. **SmackDown-icons page of a wrestler panel (panel state 2) has no frame.** Seen in Survival and other modes. We first thought the original game draws it that way, but the maintainer reports it is introduced by this mod. Not investigated yet: compare against an unpatched game, then look at what the select-screen hooks (`scpin`, `cvt`, `cinit`, `cut`) and the grown `SelectWrestlerFrame` entries change for panels drawn by `SelectWrestlerDrawer`.
+8. Only two match types use the 8-player flow (records 72 and 85). Two more unused records exist (13, 40).
 
 ## Parked
 - Health cards for slots 7 and 8: a vertex-transform hook on `CBaseDraw2D::MulMatrix` can scale the whole HUD; a second draw pass showed glitches.
 - Summary screen names: hooks for `CreateRosterTable` / `DrawRoster` did not show the extra names.
 
-## Not an issue
-- The SmackDown-icons page of a panel has no frame: that is how the game draws it.
+

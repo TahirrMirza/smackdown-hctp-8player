@@ -37,7 +37,7 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 | **PLAY summary screen lists only 6 names.** | open |
 | **No referee** in the 8-wrestler matches. | by design, see below |
 | COM slots 7/8 may get the same default wrestler as slot 6 when not picked. | open |
-| The SmackDown-icons page of a panel has no frame. | not a bug: the original game does the same |
+| **The SmackDown-icons page of a wrestler panel has no frame** (reported in Survival, also seen in other modes). Earlier we assumed the original game does this; it is now believed to be caused by this mod. | open, cause unknown |
 
 ### Why only 6 health cards
 
