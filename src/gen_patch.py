@@ -1,4 +1,4 @@
-"""Generator for the 8-player patch (build s49).
+"""Generator for the 8-player patch (build s62 corrected HUD sidecar row).
 
 Reads the ORIGINAL SLUS_207.87 (path in $HCTP_ELF), writes a patch list (path in $HCTP_PATCH_OUT) with lines
     <vaddr hex> w <word hex>      one 32-bit word
@@ -12,6 +12,8 @@ LADDER "4 PLAYER ROYAL BATTLE" (record 85, teams of two) and SURVIVAL "8-MAN BAT
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asm import assemble, to_patch_lines
+
+HUD_PROTOTYPE = os.environ.get('HCTP_HUD_PROTOTYPE', '1') != '0'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ELF_PATH = os.environ['HCTP_ELF']
@@ -912,6 +914,53 @@ w(0x47B614, pl['iaw'], 'PositionSelectFrame vtable[17] InputAction -> iaw')
 # ---------------- stage 1: SelectWrestlerFrame grown to 8 entries (behaviour unchanged) ----------------
 import remap_sel as _rs
 SCAVE = 0x112880
+CDRV = 0x121158                # dead sceMcChdir: current-screen COM-panel driver setup
+_cdrv_src = """
+cdrv:   addiu t0,t9,8
+        addiu t1,zero,4
+        addiu t2,zero,-1
+cdscan: lw t3,0(t0)
+        addiu t4,zero,6
+        beq t3,t4,cdnext
+        nop
+        sltiu t4,t3,0x10
+        bnez t4,cdpad
+        nop
+        andi t3,t3,7
+cdpad:  slt t4,t2,zero
+        bnez t4,cdset
+        nop
+        slt t4,t3,t2
+        beqz t4,cdnext
+        nop
+cdset:  move t2,t3
+cdnext: addiu t0,t0,0x30
+        addiu t1,t1,-1
+        bnez t1,cdscan
+        nop
+        slt t4,t2,zero
+        beqz t4,cdhave
+        nop
+        move t2,zero
+        sw zero,0x184(t9)
+cdhave: addiu t0,t9,0
+        addiu t1,zero,4
+cdloop: lw t3,8(t0)
+        addiu t4,zero,6
+        bne t3,t4,cdskip
+        nop
+        sw t2,0xc(t0)
+cdskip: addiu t0,t0,0x30
+        addiu t1,t1,-1
+        bnez t1,cdloop
+        nop
+cdret:  jr ra
+        nop
+"""
+_cdw, _cdl = assemble(CDRV, _cdrv_src)
+for _l in to_patch_lines(CDRV, _cdw, 'COM panels: share a human pad or use ALL COM flow'):
+    out.append(_l)
+assert CDRV + 4 * len(_cdw) <= CDRV + 320, hex(CDRV + 4 * len(_cdw))
 _ssrc = f"""
 # scpin: a0 = frame struct (dest), a1 = sequence struct (src).
 # Record 49 (4+4 flow): screen 1 shows entries 0..3, screen 2 shows entries 4,5 + E0,E1 (teams -2) in frame entries 0..3; type scalar = 3 (2x2 layout)
@@ -983,13 +1032,8 @@ pa:     sw t4,8(t0)
         nop
         addiu t4,zero,0x17
 pb:     sw t4,0x38(t0)
-        lw t1,8(t0)
-        addiu t1,t1,-6
-        sltu t1,zero,t1
+        addiu t1,zero,1
         sw t1,4(t0)
-        lw t1,0x38(t0)
-        addiu t1,t1,-6
-        sltu t1,zero,t1
         sw t1,0x34(t0)
         move t0,t9
         move t1,a1
@@ -1035,6 +1079,8 @@ sscal:  addiu t1,a1,0x120
 {cp('sf', 't1', 't0')}
         addiu t1,zero,3
         sw t1,0x18c(t9)
+        jal {CDRV}
+        nop
         jr ra
         nop
 sstd:   move t0,a0
@@ -1270,9 +1316,10 @@ for _i, _t in enumerate(((20, 23, 30), (20, 24, 31), (20, 25, 33), (20, 26, 34),
         w(SITEMS + 12 * _i + 4 * _j, _v, 'SURVIVAL item list' if (_i, _j) == (0, 0) else '')
 w(0x45ADD4, SITEMS, 'SURVIVAL menu descriptor: item list pointer')
 w(0x45ADD8, 6, 'SURVIVAL menu descriptor: item count 5 -> 6')
-# team tables for the 8-player flow: index = BRF*16 (mode 0 = LADDER teams of two, mode 1 = battle royal)
+# Team tables for the 8-player flow: index = BRF*16 (mode 0 = LADDER teams of two, mode 1 = battle royal).
+# FTAB is display-only: both modes use alternating 0/1 so all four selector containers exist. RT1/RT2 restore the real match teams.
 w(BRF, 0, 'BRF flag')
-for _tab, _vals in ((FTAB, ((0, 1, 0, 1), (0, 2, 1, 3))), (RT1, ((0, 1, 0, 1), (0, 1, 2, 3))), (RT2, ((2, 2, 3, 3), (4, 5, 6, 7)))):
+for _tab, _vals in ((FTAB, ((0, 1, 0, 1), (0, 1, 0, 1))), (RT1, ((0, 1, 0, 1), (0, 1, 2, 3))), (RT2, ((2, 2, 3, 3), (4, 5, 6, 7)))):
     for _m in range(2):
         for _k in range(4):
             w(_tab + 16 * _m + 4 * _k, _vals[_m][_k], 'team table' if (_m, _k) == (0, 0) else '')
@@ -1295,6 +1342,12 @@ _pw, _pl = assemble(PITCH, _psrc)
 for _l in to_patch_lines(PITCH, _pw, 'player-count list row pitch (24 px for 8+ rows)'):
     out.append(_l)
 w(0x133C40, 0x0C000000 | (_pl['pitch'] >> 2), 'GeneralSelectMenu ctor: jal pitch (replaces lui v0,0x4200)')
+
+# Eight health cards.  Kept in a module because it uses four independent dead
+# functions as caves and has its own static safety bounds.
+from hud_patch import add_hud_patch
+if HUD_PROTOTYPE:
+    add_hud_patch(out, w, assemble, to_patch_lines, HAVE)
 
 import asm as _asm
 for _a, _b in sorted(_asm.CODE_RANGES):

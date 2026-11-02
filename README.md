@@ -7,9 +7,13 @@ It is made of direct patches to the game executable (`SLUS_207.87`). No emulator
 > **No game files are in this repository.** You must supply your own legally obtained dump of the USA disc. The build script checks that your executable is the exact expected file and refuses anything else.
 > This project is not affiliated with or endorsed by WWE, THQ, Yuke's or Sony.
 
-## What works (patch "s49")
+## What works (patch "s62" test line)
 
-Two new match types, both for 8 human players:
+> **s53:** ALL COM, 1 PLAYER, 6 PLAYERS and 8 PLAYERS are confirmed working in both new modes. Both selection screens complete, the match loads, the normal HUD remains intact, and the failed s52 count-overlay regression is gone.
+
+> **s62 prototype:** synchronizes names, filled/empty finisher-count textures, retail-timed pulsing damage colors and finisher feedback on the two isolated sidecar cards. All cloned card layers use the same 50% matrix-rendered path. It also corrects the renderer-bias units exposed by the s61 runtime test so the private pair is placed 60 pixels below the top row. Runtime verification of the corrected placement is pending.
+
+Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
 | Menu | Entry | What it is |
 | --- | --- | --- |
@@ -27,19 +31,18 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 
 ## Known issues — please read
 
-**Only two match types support 8 players, and only with a full 8 human players.** Every other mode is unchanged and limited to 6, as in the original game. Do not expect other modes to work with 8.
+**Only two match types support eight wrestlers.** Every other mode is unchanged and limited to 6, as in the original game. Do not expect other modes to work with 8.
 
 | Issue | Status |
 | --- | --- |
 | **Only LADDER "4 PLAYER ROYAL BATTLE" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
-| **Fewer than 8 humans or ALL COM is broken** in those two modes. With 1 player or ALL COM only part of the wrestlers get picked; with 6 players the second select screen hangs. Choose **8 PLAYERS**. | open, see [KNOWN_ISSUES](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md) |
-| **HUD shows only 6 health cards.** Wrestlers 7 and 8 have none. | open, see below |
+| **HUD cards 7/8.** A synchronized isolated two-card sidecar prototype with aligned 50% layers and corrected row offset is in s62. | experimental, runtime test pending |
 | **PLAY summary screen lists only 6 names.** | open |
 | **No referee** in the 8-wrestler matches. | by design, see below |
 | COM slots 7/8 may get the same default wrestler as slot 6 when not picked. | open |
 | **The SmackDown-icons page of a wrestler panel has no frame** (reported in Survival, also seen in other modes). Earlier we assumed the original game does this; it is now believed to be caused by this mod. | open, cause unknown |
 
-### Why only 6 health cards
+### Why the retail HUD only has 6 health cards
 
 The in-match HUD (`caSd5Game2D` and `CSpriteCtrlGame2D`) is built for six wrestlers: six fixed plate positions (two columns, top and bottom rows) and many per-plate arrays and loops of size 6. Making it draw eight is not just a table change. What we tried:
 
@@ -49,7 +52,7 @@ The in-match HUD (`caSd5Game2D` and `CSpriteCtrlGame2D`) is built for six wrestl
   - Running the HUD update twice per frame has side effects (pause state, controller removal, timer, ring-out counter), which gave glitches: a stuck "Hit any button repeatedly" prompt, a "DQ" text in the middle of the screen and a ring-out count that stayed on screen.
   - Cards for slots 7 and 8 were never initialised, because the game builds the plates once in the constructor.
 
-So the character layout and the rest of the UI break as soon as the HUD is forced to eight. A clean solution has to extend the HUD arrays, plate position tables and loops properly instead of drawing it twice. Details and addresses are in the [dev log](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/DEV_LOG.md) (sections 19, 20, 22) and in [KNOWN_ISSUES](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md).
+The key discovery after s52 is that only six `0x7C` plate records exist. A hypothetical plate 7 begins at the global HUD state and its health field overlaps the count value at `+0x4C20`; this caused the disappearing HUD and repeated `5`. The s62 prototype instead owns private draw and animation state for slots 7/8. Details and addresses are in the [dev log](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/DEV_LOG.md) and [KNOWN_ISSUES](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md).
 
 ### Why there is no referee
 
@@ -77,7 +80,7 @@ The script
 2. checks its SHA-1 (wrong file → it stops),
 3. generates the patch from that executable,
 4. writes a copy of the ISO with the patched executable (same size, same sector position, nothing else moves),
-5. re-reads it and verifies the result: patched executable SHA-1 must be `6414dd213f03db3350f9801da80415077ae9dbba`.
+5. re-reads it and verifies the result: the s62 prototype executable SHA-1 must be `20106ca894819fbc89b432580aeecf137f075901`.
 
 Other modes:
 

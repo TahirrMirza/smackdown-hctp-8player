@@ -1,7 +1,7 @@
 # Development log (reverse-engineering notes)
 
-Chronological notes written while building the mod. Sections 1-22 are history (several ideas were abandoned: the pnach prototype,
-the 7-wrestler experiments, the HUD experiments). **Section 23 is the state of the shipped patch (build "s49").**
+Chronological notes written while building the mod. Sections 1-30 are history (several ideas were abandoned: the pnach prototype,
+the 7-wrestler experiments and multiple HUD approaches). **Section 32 is the current s62 prototype state; runtime verification is pending.**
 Generator names in these notes (`mk_s49.py`, `patch_s49.txt`, `tools/...`) map to this repository as: `mk_s49.py` -> `src/gen_patch.py`,
 `patch_s14.txt` -> `src/base_patches.txt`, `mkiso.py` -> `build.py`; older generators `mk_s15..s48` are not included (git history of the
 original working folder only). Addresses are virtual addresses in the game executable `SLUS_207.87` (file offset = vaddr - 0x100000 + 0x80).
@@ -9,7 +9,7 @@ Symbol names come from the executable's own symbol table (`tools/syms.py` regene
 
 
 Handoff file. Paste or point a new chat at this file to continue the work.
-Last updated: 2026-10-28 (end of day). **READ SECTION 23 (the last section of this file, "HANDOFF 2026-10-28") FIRST: it is the current state and supersedes the older sections where they disagree** (sections 1-21 are the chronological history: the pnach prototype, the ELF analysis, the 8-wrestler milestone, the HUD experiments). The game ELF is `SLUS_207.87`, game CRC `9B85B093`.
+Last updated: 2026-11-03. **READ SECTION 31 first for the current HUD work and `/Users/tahir/Documents/Smackdown HCTP/CONTEXT.md` section 24 for the complete handoff.** Older sections are chronological history and may describe abandoned builds. The game ELF is `SLUS_207.87`, game CRC `9B85B093`.
 
 ---
 
@@ -454,4 +454,73 @@ mk_sNN.py (generators), patch_sNN.txt, mkiso.py, asm.py, dis.py (MIPS disassembl
 
 ### 23.5b Hardware prep DONE (2026-10-28)
 - All four checks in 23.5 passed statically (cache lines, dead caves, alignment/delay slots, ISO == ELF+patches). Details and run guide: REAL_PS2.md. Real-PS2 test is up to the user.
+
+## 24. s54 isolated HUD sidecar prototype (2026-11-02)
+
+- Corrected the earlier model: `caSd5Game2D` has only six `0x7C` plate records at `+0x4894..+0x4B7B`, not eight. `SetPosNo` initializes eight map entries at `+0x4C98`, but map values 6/7 address unrelated state.
+- A hypothetical plate 6 begins at `+0x4B7C`, the HUD/replay mode checked by `CSpriteCtrlGame2D::Draw`. A hypothetical plate 7 begins at `+0x4BF8`; its field `+0x28` is `+0x4C20`, the count overlay. This fully explains s52's vanished HUD and repeating green `5`.
+- s54 allocates one private block and shallow-clones only already-loaded draw objects for the top two cards. It changes cloned font string pointers to slots 6/7 and draws health pips from `g_pChar[6/7]`. Texture/font tables are shared read-only.
+- It never calls `SetSuperStarData(6/7)`, never swaps records or `g_pChar`, never changes `g_pSdGame2D`, never loads `GAME2D.PAC` twice, and never runs either HUD Action twice.
+- The proven s41 50% vertex transform is retained so the two translated sidecar cards fit below the top row. Runtime result is pending.
+
+## 25. s55 complete sidecar card prototype (2026-11-02)
+
+- Runtime inspection of s54 confirmed that the sidecar allocated successfully, its owner matched the live `caSd5Game2D`, and `g_pChar[6]`/`g_pChar[7]` were valid. The cloned font string pointers and draw-object vtables were also valid, but the extra cards' name and body contents were not visible.
+- s55 removes the temporary mutation of the shared renderer Y offset. Every private clone instead receives its own `+60.0` Y translation during initialization, so the retail six cards and global renderer state are untouched.
+- The sidecar now clones and draws the complete damage display for each extra card: the base body silhouette plus five damage-part layers from the retail top-card templates. Names and health pips remain sourced directly from slots 6 and 7.
+- Clone and pointer-array helpers were moved into the larger MMW cave to keep every function within its statically checked dead-code boundary. `tools/check_patch.py` reports 2,440 words, 12 code blocks and 19 live library functions with no overlap or branch errors.
+- Patched executable SHA-1: `2543a96e3d897fd70773207ac1f439e11a4714fd`. Runtime result is pending.
+
+## 26. s56 renderer-space second row (2026-11-02)
+
+- The s55 runtime state was internally valid, but the screenshot showed dark cloned plates over cards 1/2 and the extra name clipped at the top edge. Changing the shallow clones' leading position fields did not move the cached vertices used by these draw objects.
+- Decompiled `CRectDraw`/`CSpriteDraw` paths confirm `CRender+0x10624` is the final X bias and `CRender+0x10620` is the final Y bias. s56 adds 960 internal units (60 pixels) to the Y bias only around the two sidecar draw calls and restores it before flushing/returning.
+- The six retail cards are drawn before the temporary bias and are therefore unaffected. The private clones retain their native top-card geometry while the renderer places the complete sidecar row 60 pixels lower.
+- Patched executable SHA-1: `51d0abc1e8f0b700032f71f8df474e1d1fb5cff7`. Runtime result is pending.
+
+## 27. s57 live sidecar state and object-level scaling (2026-11-02)
+
+- s56 proved the second-row renderer translation, but its screenshot exposed five remaining gaps: cards were compressed vertically rather than truly reduced, names and finisher elements were misaligned, cloned limb colors stayed blue, slots 7/8 had no finisher feedback, and Survival's fourth selector frame was missing.
+- Root cause of the size bug: the MMW hook classified each of a quad's four vertices independently. Inner vertices of a left/right card landed in the center exclusion band, so one edge scaled while the other did not. s57 classifies the draw object once from its anchor (`CBaseDraw2D+0/+4`) and applies the same corner transform to all four vertices.
+- The sidecar now reads each extra wrestler's CHHP link (`SearchLink(char+0x1B4, 0x434850)`) and applies the retail blue/yellow/orange/red thresholds to the five cloned limb overlays every frame.
+- Two private `MenuAnimObject`s mirror the retail eligible-finisher animation for slots 7/8. A separate tracker mirrors the retail `char+0x2AC` decrease check and calls `RequestSmackDownYmp`, restoring the large center feedback when an extra wrestler consumes a finisher.
+- Survival selector frames use alternating display teams `0,1,0,1`; the real battle-royal teams `0,1,2,3` and `4,5,6,7` are still restored after each selection pass. This keeps the bottom-right layout index inside the four valid panel containers.
+- Static validation: 2,817 words, 15 code blocks, 19 live library functions, no overlap or branch errors. Patched executable SHA-1: `a0b09f18f5dbe3c16254cab80df1ccd718750044`. Runtime result is pending.
+
+## 28. s58 name, count-texture and damage-pulse synchronization (2026-11-02)
+
+- s57 runtime proved both private finisher animations and live damage-color thresholds, but the name fonts were blank, the five `S` textures remained frozen at their initialization pattern, and damaged limbs changed color without the retail pulse.
+- The blank-name cause was a caller-register lifetime bug: `damage()` replaced `a0` after the match-wrestler number had been loaded. s58 reloads the slot's 16-bit match wrestler number immediately before `GetMatchWresName`; the cloned font object itself was already byte-identical to its retail template.
+- Each sidecar card now copies the filled or empty texture descriptor into every `S` sprite each frame according to `char+0x2AC`, while drawing the retail maximum count from `max(char+0x2AC, char+0x2B0)`.
+- Damaged limb overlays use a 64-frame triangular alpha phase, closely matching the retail 90-frame pulse while fitting the existing verified cave. Blue/healthy parts remain fully opaque.
+- The apparent bar above each body is the retail name-backing rectangle; its 68-pixel scaled width and position coincide with the previously blank font, so the restored name fills it rather than requiring a separate geometry change.
+- Static validation: 2,858 words, 15 code blocks, 19 live library functions. Patched executable SHA-1: `e69f35de4a5db9a1a68ea06627c18466c5909f49`. Runtime result is pending.
+
+## 29. s59 complete 25% HUD scaling (2026-11-02)
+
+- Changing the existing vertex-transform parameters from 50% to 25% did not visibly shrink most of the HUD. The parameter values were correct; the renderer path was incomplete.
+- `CRectDraw`, fonts and several ordinary sprite paths call `CBaseDraw2D::MulMatrix`, which the existing MMW hook scales. Most card artwork uses `CSpriteDraw::ShowFast` (`0x15F450`) instead. That method reads two cached screen-space corners from `CSpriteDraw+0xC0/+0xC4` and `+0xD0/+0xD4` and never calls `MulMatrix`, so the old hook could not affect the card, gauge, body or finisher sprites.
+- s59 redirects the `CSpriteDraw` vtable entry at `0x47BBB8` through a HUD-scoped wrapper in dead `sceSync` (`0x111F38`). While `GACT` is active, it applies the same 25% corner transform to those cached vertices, calls the original `ShowFast`, and restores all four values immediately afterward. This prevents cumulative frame-by-frame distortion and leaves non-HUD sprites untouched.
+- The sidecar row translation and private finisher animation Y placement were reduced proportionally for the smaller cards.
+- Static validation reports 2,951 words in 16 code blocks with 19 live library functions and no overlap or branch errors; the builder applies 2,831 patch entries. Patched executable SHA-1: `2dab65e851ebb9006221e6ca76cbfc526e466ba7`. Runtime result is pending.
+
+## 30. s60 restore stable 50% HUD layout (2026-11-03)
+
+- Runtime screenshot showed that s59 tore the HUD into separately anchored layers: names and backing rectangles stretched across the screen while body and other cached sprites collapsed toward the right edge.
+- The `ShowFast` cache does not represent a single uniform absolute-coordinate space suitable for the same transform used after `MulMatrix`. Hooking its shared vtable entry was therefore removed rather than attempting another global correction.
+- Restored the proven 50% matrix transform, 60-pixel sidecar-row renderer translation and original private finisher-animation placement. This reproduces the s58 executable exactly while retaining all synchronized name, finisher-count, damage-pulse and Survival-selector fixes.
+- Static validation: 2,858 words, 15 code blocks and 19 live library functions, with no overlap or branch errors. Patched executable SHA-1: `e69f35de4a5db9a1a68ea06627c18466c5909f49`.
+
+## 31. s61 align all sidecar layers and match retail pulse timing (2026-11-03)
+
+- The s60 screenshot showed that the two sidecar cards still mixed coordinate paths: `card.show` explicitly invoked vtable `+0x38` (`ShowFast`) for cloned sprites, bypassing the MMW 50% transform, while the font and other layers used the normal matrix path. This left bodies at the outer edges, put the name backing over the finisher icons and separated the names from their cards.
+- The private-card helper now invokes vtable `+0x0C` (`Show`) for its cloned rectangles and sprites. All layers therefore pass through the same HUD-scoped MMW transform and retain the existing 60-pixel second-row bias.
+- Replaced the custom 64-frame limb-alpha triangle with the retail 90-frame phase: fold at frame 45 and approximately `64 + phase * 191 / 90`. This matches the native pulse period and peak alpha instead of flashing faster.
+- Static validation: 2,865 words, 16 code blocks and 19 live library functions, with no overlap or branch errors. Patched executable SHA-1: `74e2d8a78fc4b89d9de714e3d39bf2733e409f05`.
+
+## 32. s62 correct the sidecar renderer-bias units (2026-11-03)
+
+- The first s61 runtime screenshot showed the private cards around the lower centre/right instead of directly below the top pair. The logs were clean, both extra characters and the sidecar allocation were valid, and the running hooks matched s61.
+- The renderer bias at `CRender+0x10620` is in quarter-pixel units. The inherited `+960` value therefore moved the private cards about 240 pixels, hiding the left card under the retail lower HUD and leaving the right card visibly stranded near the centre. s62 uses `+240` / `-240`, a 60-pixel temporary offset.
+- Static validation remains 2,865 words, 16 code blocks and 19 live library functions, with no overlap or branch errors. Patched executable SHA-1: `20106ca894819fbc89b432580aeecf137f075901`.
 

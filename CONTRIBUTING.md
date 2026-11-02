@@ -19,8 +19,8 @@ Rules:
 
 | Area | What | Difficulty |
 | --- | --- | --- |
-| Select screens | Make fewer than 8 humans and ALL COM work in the two 8-player modes ([details](docs/KNOWN_ISSUES.md)) | medium |
-| HUD | Health cards for wrestlers 7 and 8 | hard |
+| Select screens | Test the remaining 2, 3, 4, 5 and 7-player combinations in both 8-wrestler modes | easy |
+| HUD | Runtime-test and refine the experimental s62 cards for wrestlers 7 and 8 | medium–hard |
 | PLAY summary | List all 8 names | medium |
 | Referee | Optional referee in 8-wrestler matches | medium |
 | More modes | Other match types with 8 wrestlers (tag, triple threat, hardcore…): each needs a free match record, a rule entry and a menu item | easy–medium |

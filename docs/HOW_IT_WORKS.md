@@ -45,7 +45,17 @@ State flags: `PASS` 0x110790 (0 = screen 1, 1 = screen 2), `HAVE` 0x110794 (E va
 
 `SelectWrestlerFrame` (0x24D4B0…) was grown from 0x2284 to 0x22F4 bytes (8 entries, 8 `SelectWrestlerOne` pointers; 267 field accesses remapped by `remap_sel.py`; loops 6 → 8). Screen 1 shows entries 0–3, screen 2 shows entries 4, 5 and E0, E1, always as a 2×2 grid (frame type scalar forced to 3).
 
-## 7. Real hardware notes
+## 7. Eight-card HUD sidecar
+
+The retail HUD has only six `0x7C` plate records. Its eight-entry slot map does not allocate two more: indexing a seventh/eighth plate aliases global HUD state, including the count overlay. The patch therefore leaves all retail plate records untouched and allocates a private two-card sidecar for slots 7 and 8.
+
+The sidecar shallow-clones already-loaded top-card draw objects while sharing texture and font resources read-only. Each card has its own rectangle, gauge, name backing, font, five finisher-count sprites and six body/damage layers. Live names, filled/empty finisher textures and limb colors come directly from `g_pChar[6]` and `g_pChar[7]`. Two private animation objects provide finisher-ready feedback, and a decrease tracker restores the large center SmackDown effect when either extra wrestler consumes a finisher.
+
+The `CSpriteCtrlGame2D` draw vtable entry at `0x47F05C` is wrapped only for the duration of HUD drawing. The seven callers of `CBaseDraw2D::MulMatrix` are wrapped to apply a 50% corner transform while `GACT` is active. Private cloned layers call their normal `Show` method (vtable `+0x0C`), so bodies, backing, `S` icons and fonts use the same transform. A temporary renderer Y bias of 240 quarter-pixel units (60 pixels) places the private pair below the top row and is restored immediately afterward.
+
+Damage colors follow the retail health thresholds and a 90-frame alpha triangle. State and parameters live at `0x3B5FC0`; implementation and statically bounded cave assignments are isolated in `src/hud_patch.py`.
+
+## 8. Real hardware notes
 
 - No patch writes below 0x100000; every patch is inside the loaded image.
 - Data words written at runtime (flags, side buffer, temp copy) never share a 64-byte cache line with executed new code (checked), and nothing writes code at runtime.
@@ -54,4 +64,4 @@ State flags: `PASS` 0x110790 (0 = screen 1, 1 = screen 2), `HAVE` 0x110794 (E va
 
 ## Reproducibility
 
-`build.py` produces an executable with SHA-1 `6414dd213f03db3350f9801da80415077ae9dbba` from the original `d8ef8451378be669184de04478a550c8a46d02d6`. For the full story and the dead ends see `DEV_LOG.md`.
+The current s62 HUD-sidecar prototype produces an executable with SHA-1 `20106ca894819fbc89b432580aeecf137f075901` from the original `d8ef8451378be669184de04478a550c8a46d02d6`. Set `HCTP_HUD_PROTOTYPE=0` when running the generator to omit the experimental sidecar. For the full story and the dead ends see `DEV_LOG.md`.

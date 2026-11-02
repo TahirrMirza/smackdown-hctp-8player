@@ -27,13 +27,15 @@ The patch is plain executable changes; no emulator features are used. It was tes
 ## Playing an 8-player match
 
 1. Exhibition → pick the category **LADDER** and choose the last item **4 PLAYER ROYAL BATTLE**, or pick **SURVIVAL** and choose the last item **8-MAN BATTLE ROYAL**.
-2. Choose **8 PLAYERS** (see Known issues: fewer players / ALL COM are not working yet).
+2. Choose **1–8 PLAYERS** or **ALL COM**. ALL COM, 1, 6 and 8 players are confirmed working in both new modes.
 3. **Position screen:** eight boxes. Assign which pad plays which box. The ladder mode uses teams of two (boxes in pairs), survival has no teams.
 4. **Wrestler select, screen 1:** slots 1–4 pick. Confirm.
 5. **Wrestler select, screen 2:** slots 5–8 pick. Wrestlers chosen on screen 1 are not in the grid anymore. Cancel on screen 2 goes back to screen 1.
 6. Stage, rules, play.
 
+The current s62 HUD prototype adds private cards for wrestlers 7 and 8. During testing, check that they form a second row 60 pixels below the top cards, their names, five finisher `S` icons and body layers stay aligned, and damaged limbs pulse at the same speed as the six retail cards.
+
 ## If something breaks
 
-- Tell which screen it happened on, which emulator/console, and whether the ISO was built from the unmodified dump (the build script prints the executable SHA-1).
+- Tell which screen it happened on, which emulator/console, and whether the ISO was built from the unmodified dump (s62 prints executable SHA-1 `20106ca894819fbc89b432580aeecf137f075901`).
 - Try `python3 tools/check_patch.py` on your generated patch (needs `--keep-patch`).
