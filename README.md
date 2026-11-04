@@ -13,7 +13,7 @@ The main 8-player flow is runtime-tested. ALL COM, 1 PLAYER, 6 PLAYERS and 8 PLA
 
 The pre-match PLAY screen is also confirmed: all eight animated wrestlers are visible and all eight names fit in two compact columns.
 
-The default generator currently includes an **experimental in-match HUD extension** for wrestlers 7 and 8. It draws body/damage indicators and live finisher-count icons without adding two extra names. This part still needs broader runtime testing and can be disabled with `HCTP_HUD_PROTOTYPE=0`.
+The in-match HUD supports all eight wrestlers. Wrestlers 1–6 keep the complete retail cards; wrestlers 7 and 8 receive body/damage indicators and live finisher-count icons. Their names are intentionally omitted because the retail HUD has only six native name-card records.
 
 Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
@@ -38,23 +38,17 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 | Issue | Status |
 | --- | --- |
 | **Only LADDER "FATAL 4-WAY TORNADO TAG" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
-| **HUD cards 7/8.** The optional sidecar draws body/damage and live finisher-count indicators without extra names. | experimental, runtime testing needed |
+| **HUD cards 7/8.** All eight wrestlers have HUD indicators. Cards 7/8 show body damage and live finisher counts but intentionally omit names. | supported; names limited to cards 1–6 |
 | **PLAY summary.** All 8 animated wrestlers and all 8 names appear in two compact columns. | fixed and runtime-confirmed |
 | **No referee** in the 8-wrestler matches. | by design, see below |
 | COM slots 7/8 may get the same default wrestler as slot 6 when not picked. | open |
 | **The SmackDown-icons page of a wrestler panel has no frame** (reported in Survival, also seen in other modes). Earlier we assumed the original game does this; it is now believed to be caused by this mod. | open, cause unknown |
 
-### Why the retail HUD only has 6 health cards
+### Eight-wrestler HUD
 
-The in-match HUD (`caSd5Game2D` and `CSpriteCtrlGame2D`) is built for six wrestlers: six fixed plate positions (two columns, top and bottom rows) and many per-plate arrays and loops of size 6. Making it draw eight is not just a table change. What we tried:
+The retail game contains complete HUD records for only six wrestlers. This patch preserves those six cards and adds two private HUD cards for wrestlers 7 and 8. The extra cards track body damage, finisher availability, finisher consumption and SmackDown feedback in real time. They intentionally omit wrestler names and name backings; names remain available for all eight wrestlers on the pre-match PLAY screen.
 
-- **Scaling the whole HUD** toward the screen corners with a hook on the matrix multiply used by 2D drawing. This works: the six cards shrink to 50–75 % and stay in their corners.
-- **A second row for wrestlers 7 and 8**, either by building a second HUD object or by swapping slot data and drawing the HUD twice. Both failed:
-  - A second HUD object loaded its own data, which made the wrestlers invisible and the crowd and music disappear.
-  - Running the HUD update twice per frame has side effects (pause state, controller removal, timer, ring-out counter), which gave glitches: a stuck "Hit any button repeatedly" prompt, a "DQ" text in the middle of the screen and a ring-out count that stayed on screen.
-  - Cards for slots 7 and 8 were never initialised, because the game builds the plates once in the constructor.
-
-The key discovery was that only six `0x7C` plate records exist. A hypothetical seventh plate begins inside global HUD state, and an eighth plate's health field overlaps the count value at `+0x4C20`; writing them caused the disappearing HUD and repeated `5`. The current sidecar instead owns private draw and animation state for slots 7/8. Details and addresses are in the [dev log](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/DEV_LOG.md) and [KNOWN_ISSUES](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/KNOWN_ISSUES.md).
+The implementation does not create a second retail HUD or update the main HUD twice. It uses isolated draw and animation state so the normal pause, timer, controller and match systems remain untouched. Technical details and addresses are in [HOW_IT_WORKS](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/HOW_IT_WORKS.md).
 
 ### Why there is no referee
 

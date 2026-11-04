@@ -35,7 +35,7 @@ The patch is plain executable changes; no emulator features are used. It was tes
 
 On the PLAY screen, the current patch should show all eight animated wrestlers and all eight names in two compact columns.
 
-The optional HUD sidecar adds private body/damage and finisher-count cards for wrestlers 7 and 8. Their names are intentionally hidden. During testing, confirm that the body PIPs react to damage, filled finisher icons subtract when a finisher is consumed, and no extra HUD names appear. Build with `HCTP_HUD_PROTOTYPE=0` to omit this experimental feature.
+The in-match HUD covers all eight wrestlers. Cards 7 and 8 show body/damage and live finisher-count indicators, but intentionally omit wrestler names. Names for all eight wrestlers remain visible on the PLAY screen.
 
 ## If something breaks
 
