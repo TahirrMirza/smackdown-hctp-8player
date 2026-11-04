@@ -19,7 +19,7 @@ Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
 | Menu | Entry | What it is |
 | --- | --- | --- |
-| Exhibition → **LADDER** (last item) | **4 PLAYER ROYAL BATTLE** | Ladder match with the belt, 4 teams of two |
+| Exhibition → **LADDER** (last item) | **FATAL 4-WAY TORNADO TAG** | Ladder match with the belt, 4 teams of two |
 | Exhibition → **SURVIVAL** (last item) | **8-MAN BATTLE ROYAL** | Battle royal, every wrestler for himself |
 
 Also new:
@@ -37,7 +37,7 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 
 | Issue | Status |
 | --- | --- |
-| **Only LADDER "4 PLAYER ROYAL BATTLE" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
+| **Only LADDER "FATAL 4-WAY TORNADO TAG" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
 | **HUD cards 7/8.** The optional sidecar draws body/damage and live finisher-count indicators without extra names. | experimental, runtime testing needed |
 | **PLAY summary.** All 8 animated wrestlers and all 8 names appear in two compact columns. | fixed and runtime-confirmed |
 | **No referee** in the 8-wrestler matches. | by design, see below |
@@ -82,7 +82,7 @@ The script
 2. checks its SHA-1 (wrong file → it stops),
 3. generates the patch from that executable,
 4. writes a copy of the ISO with the patched executable (same size, same sector position, nothing else moves),
-5. re-reads it and verifies the result: the current default patched executable SHA-1 must be `83468524c71338b1e4a10c56b0fc110bcb42d783`.
+5. re-reads it and verifies the result: the current default patched executable SHA-1 must be `a24b4233fd0c19d14f68389e2f709316a9aac4cd`.
 
 Other modes:
 
@@ -101,7 +101,7 @@ Short version (details: [RUNNING.md](https://github.com/TahirrMirza/smackdown-hc
 
 1. **PCSX2:** Settings → Controllers: enable **Multitap on Port 1 and Port 2**, bind pads 1A–1D and 2A–2D. Boot the patched ISO (System → Start File).
 2. **Real PS2:** put the ISO on a USB/SMB/HDD drive and boot with Open PS2 Loader.
-3. In the game: Exhibition → **LADDER → 4 PLAYER ROYAL BATTLE**, or **SURVIVAL → 8-MAN BATTLE ROYAL** → choose **8 PLAYERS** → assign the eight pads on the position screen → pick wrestlers on the two select screens → stage → play.
+3. In the game: Exhibition → **LADDER → FATAL 4-WAY TORNADO TAG**, or **SURVIVAL → 8-MAN BATTLE ROYAL** → choose **8 PLAYERS** → assign the eight pads on the position screen → pick wrestlers on the two select screens → stage → play.
 
 ## Documentation
 

@@ -7,7 +7,7 @@ Reads the ORIGINAL SLUS_207.87 (path in $HCTP_ELF), writes a patch list (path in
 vaddr -> file offset: off = vaddr - 0x100000 + 0x80.  build.py runs this and applies the list; run it directly only for debugging.
 
 What the patch does: see docs/HOW_IT_WORKS.md.  Two new match types use the 8-player flow:
-LADDER "4 PLAYER ROYAL BATTLE" (record 85, teams of two) and SURVIVAL "8-MAN BATTLE ROYAL" (record 72, every wrestler alone).
+LADDER "FATAL 4-WAY TORNADO TAG" (record 85, teams of two) and SURVIVAL "8-MAN BATTLE ROYAL" (record 72, every wrestler alone).
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -838,7 +838,7 @@ w(GSPTR + 4, STR8P, 'string ptr 831')
 STR9, STR10 = 0x1134F0, 0x113508
 w(GSPTR + 8, STR9, 'string ptr 832')
 w(GSPTR + 12, STR10, 'string ptr 833')
-out.append(f'{STR9:08X} {b"4 PLAYER ROYAL BATTLE".ljust(24, bytes(1)).hex()}   # string id 832')
+out.append(f'{STR9:08X} {b"FATAL 4-WAY TORNADO TAG".ljust(24, bytes(1)).hex()}   # string id 832')
 out.append(f'{STR10:08X} {b"8-MAN BATTLE ROYAL".ljust(24, bytes(1)).hex()}   # string id 833')
 out.append(f'{STR7P:08X} {b"7P".ljust(4, bytes(1)).hex()}   # "7P"')
 out.append(f'{STR8P:08X} {b"8P".ljust(4, bytes(1)).hex()}   # "8P"')
@@ -1284,14 +1284,14 @@ for _a in (0x24D5AC, 0x24D698, 0x24DA80, 0x24DF74, 0x24E048, 0x24E1B8, 0x24E24C,
 w(0x24F20C, 0x24060007, 'NextSearch: reverse loop start 5 -> 7')
 w(0x24F324, 0x24020007, 'ReverseSearch: loop start 5 -> 7')
 
-# ---------------- LADDER list: restore TRIPLE THREAT TORNADO TAG (record 49) and add 4 PLAYER ROYAL BATTLE (record 85) ----------------
+# ---------------- LADDER list: restore TRIPLE THREAT TORNADO TAG (record 49) and add FATAL 4-WAY TORNADO TAG (record 85) ----------------
 # record 85 (unused TIME LIMIT record at the end of s_GameTypeTbl) = copy of record 49 with max players 8 and title string id 832
 _ELF2 = open(ELF_PATH, 'rb').read()
 _o49 = 0x45AF60 + 49 * 32 - 0x100000 + 0x80
 _rec = bytearray(_ELF2[_o49:_o49 + 32])
 _rec[1] = 8
 _rec[8:12] = (832).to_bytes(4, 'little')
-out.append(f'0045BA00 {bytes(_rec).hex()}   # record 85 = 4 PLAYER ROYAL BATTLE (copy of record 49, max 8, title 832)')
+out.append(f'0045BA00 {bytes(_rec).hex()}   # record 85 = FATAL 4-WAY TORNADO TAG (copy of record 49, max 8, title 832)')
 # new item list for the LADDER sub-menu: 5 original items + (20, 85, 832); the descriptor at 0x45AE38 points to it
 LITEMS = 0x113498
 for _i, _t in enumerate(((20, 47, 8), (20, 48, 21), (20, 49, 29), (20, 50, 30), (20, 51, 31), (20, 85, 832))):
@@ -1301,7 +1301,7 @@ for _i, _t in enumerate(((20, 47, 8), (20, 48, 21), (20, 49, 29), (20, 50, 30), 
 # RECORD number (GetDefRule 0x12CC90 is called with seq+0x140 = record): entry 85 = copy of entry 49 with its own id byte
 _e49 = bytearray(_ELF2[0x455DC0 + 49 * 64 - 0x100000 + 0x80:0x455DC0 + 50 * 64 - 0x100000 + 0x80])
 _e49[0] = 85
-out.append(f'{0x455DC0 + 85 * 64:08X} {bytes(_e49).hex()}   # rule table entry 85 = copy of entry 49 (4 PLAYER ROYAL BATTLE)')
+out.append(f'{0x455DC0 + 85 * 64:08X} {bytes(_e49).hex()}   # rule table entry 85 = copy of entry 49 (FATAL 4-WAY TORNADO TAG)')
 # SURVIVAL list: add 8-MAN BATTLE ROYAL after 6-MAN BATTLE ROYAL (record 27) using the unused record 72:
 # record 72 = copy of record 27 (group 7, pos 0x13, flags) with max players 8 and title string id 833; rule entry 72 = copy of entry 27
 _o27 = 0x45AF60 + 27 * 32 - 0x100000 + 0x80

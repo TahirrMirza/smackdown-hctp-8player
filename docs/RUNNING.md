@@ -26,7 +26,7 @@ The patch is plain executable changes; no emulator features are used. It was tes
 
 ## Playing an 8-player match
 
-1. Exhibition → pick the category **LADDER** and choose the last item **4 PLAYER ROYAL BATTLE**, or pick **SURVIVAL** and choose the last item **8-MAN BATTLE ROYAL**.
+1. Exhibition → pick the category **LADDER** and choose the last item **FATAL 4-WAY TORNADO TAG**, or pick **SURVIVAL** and choose the last item **8-MAN BATTLE ROYAL**.
 2. Choose **1–8 PLAYERS** or **ALL COM**. ALL COM, 1, 6 and 8 players are confirmed working in both new modes.
 3. **Position screen:** eight boxes. Assign which pad plays which box. The ladder mode uses teams of two (boxes in pairs), survival has no teams.
 4. **Wrestler select, screen 1:** slots 1–4 pick. Confirm.
@@ -39,5 +39,5 @@ The optional HUD sidecar adds private body/damage and finisher-count cards for w
 
 ## If something breaks
 
-- Tell which screen it happened on, the repository commit, which emulator/console you used, and whether the ISO was built from the unmodified dump. The current default build prints executable SHA-1 `83468524c71338b1e4a10c56b0fc110bcb42d783`.
+- Tell which screen it happened on, the repository commit, which emulator/console you used, and whether the ISO was built from the unmodified dump. The current default build prints executable SHA-1 `a24b4233fd0c19d14f68389e2f709316a9aac4cd`.
 - Try `python3 tools/check_patch.py` on your generated patch (needs `--keep-patch`).

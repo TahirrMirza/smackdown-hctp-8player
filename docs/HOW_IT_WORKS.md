@@ -11,14 +11,14 @@ The executable's symbol table is intact (24,475 symbols). `python3 tools/syms.py
 
 ## 2. Match records
 
-- `s_GameTypeTbl` (0x45AF60): 86 records × 32 bytes. +0 group, +1 max players, +2 position layout type, +4 rule type, +8 title string id, +0xC… six (slot, team, extra) byte triples. The table cannot grow, so two **unused records** are reused: **85** (copy of 49, max 8, "4 PLAYER ROYAL BATTLE", teams of two) and **72** (copy of 27, max 8, "8-MAN BATTLE ROYAL", every wrestler its own team).
+- `s_GameTypeTbl` (0x45AF60): 86 records × 32 bytes. +0 group, +1 max players, +2 position layout type, +4 rule type, +8 title string id, +0xC… six (slot, team, extra) byte triples. The table cannot grow, so two **unused records** are reused: **85** (copy of 49, max 8, "FATAL 4-WAY TORNADO TAG", teams of two) and **72** (copy of 27, max 8, "8-MAN BATTLE ROYAL", every wrestler its own team).
 - Match rules (belt, referee flag…) come from the 64-byte rule table at 0x455DC0, **indexed by record number** (`GetDefRule`, 0x12CC90), so rules 85 and 72 are copies of 49 and 27.
 - Menus: sub-menu lists are arrays of 12-byte items referenced by 20-byte descriptors at 0x45AD84…; new item lists live in a cave, descriptors (0x45AE38 LADDER, 0x45ADD4 SURVIVAL) point to them with count 6.
 - The 8-player code paths trigger when the record's max-players byte is 8 (`IS8` macro in the generator). Flag `BRF` (0x113568) = group 7 (battle royal) selects the team tables.
 
 ## 3. Strings
 
-`GetRCString` (0x12FD60) gets a hook that serves the new ids from a pointer table in a cave: 830 "7P", 831 "8P", 832 "4 PLAYER ROYAL BATTLE", 833 "8-MAN BATTLE ROYAL". The pad label table `s_wresCtrlStrID` (0x468580) is relocated with 9 entries. The player-count list (`PlayerEntryNext`, 0x131D80) gets 7 PLAYERS and 8 PLAYERS lists (`base_patches.txt`); a hook at 0x133C40 narrows the row pitch to 24 px when the list has 8+ rows.
+`GetRCString` (0x12FD60) gets a hook that serves the new ids from a pointer table in a cave: 830 "7P", 831 "8P", 832 "FATAL 4-WAY TORNADO TAG", 833 "8-MAN BATTLE ROYAL". The pad label table `s_wresCtrlStrID` (0x468580) is relocated with 9 entries. The player-count list (`PlayerEntryNext`, 0x131D80) gets 7 PLAYERS and 8 PLAYERS lists (`base_patches.txt`); a hook at 0x133C40 narrows the row pitch to 24 px when the list has 8+ rows.
 
 ## 4. Position screen
 
@@ -64,4 +64,4 @@ Damage colors follow the retail health thresholds and a 90-frame alpha triangle.
 
 ## Reproducibility
 
-The current default generator produces an executable with SHA-1 `83468524c71338b1e4a10c56b0fc110bcb42d783` from the original `d8ef8451378be669184de04478a550c8a46d02d6`. Its PLAY-summary wrapper builds two compact four-name columns. Two private `MatchWrestler` pointers add slots 7/8 to the animated scene without growing the retail six-pointer `MatchWrestlerCtrl`; setup, motion start/stop and destruction are hooked explicitly. The PLAY implementation is runtime-confirmed. The optional in-match HUD sidecar still needs broader runtime testing; set `HCTP_HUD_PROTOTYPE=0` when running the generator to omit it. For the chronological experiments and dead ends, see `DEV_LOG.md`.
+The current default generator produces an executable with SHA-1 `a24b4233fd0c19d14f68389e2f709316a9aac4cd` from the original `d8ef8451378be669184de04478a550c8a46d02d6`. Its PLAY-summary wrapper builds two compact four-name columns. Two private `MatchWrestler` pointers add slots 7/8 to the animated scene without growing the retail six-pointer `MatchWrestlerCtrl`; setup, motion start/stop and destruction are hooked explicitly. The PLAY implementation is runtime-confirmed. The optional in-match HUD sidecar still needs broader runtime testing; set `HCTP_HUD_PROTOTYPE=0` when running the generator to omit it. For the chronological experiments and dead ends, see `DEV_LOG.md`.
