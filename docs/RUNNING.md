@@ -33,9 +33,11 @@ The patch is plain executable changes; no emulator features are used. It was tes
 5. **Wrestler select, screen 2:** slots 5–8 pick. Wrestlers chosen on screen 1 are not in the grid anymore. Cancel on screen 2 goes back to screen 1.
 6. Stage, rules, play.
 
-The current s62 HUD prototype adds private cards for wrestlers 7 and 8. During testing, check that they form a second row 60 pixels below the top cards, their names, five finisher `S` icons and body layers stay aligned, and damaged limbs pulse at the same speed as the six retail cards.
+On the PLAY screen, the current patch should show all eight animated wrestlers and all eight names in two compact columns.
+
+The optional HUD sidecar adds private body/damage and finisher-count cards for wrestlers 7 and 8. Their names are intentionally hidden. During testing, confirm that the body PIPs react to damage, filled finisher icons subtract when a finisher is consumed, and no extra HUD names appear. Build with `HCTP_HUD_PROTOTYPE=0` to omit this experimental feature.
 
 ## If something breaks
 
-- Tell which screen it happened on, which emulator/console, and whether the ISO was built from the unmodified dump (s62 prints executable SHA-1 `20106ca894819fbc89b432580aeecf137f075901`).
+- Tell which screen it happened on, the repository commit, which emulator/console you used, and whether the ISO was built from the unmodified dump. The current default build prints executable SHA-1 `83468524c71338b1e4a10c56b0fc110bcb42d783`.
 - Try `python3 tools/check_patch.py` on your generated patch (needs `--keep-patch`).

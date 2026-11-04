@@ -7,11 +7,10 @@ animation state, so treating those bytes as plates corrupts the HUD.
 This prototype never extends or swaps the retail object. Once GAME2D has
 finished loading, it shallow-clones the configured draw objects for the two
 top cards into a private heap block. Texture/font tables remain shared
-read-only. The cloned font strings, health pips and body/damage layers read
-slots 6 and 7 directly. All private card layers use their normal Show path so
-the HUD-scoped 50% matrix transform applies uniformly. The private row uses
-the renderer's quarter-pixel bias (240 units = 60 pixels). Damage alpha
-follows the retail 90-frame pulse period.
+read-only. Health pips and body/damage layers read slots 6 and 7 directly.
+The name backing and font are intentionally omitted. Private sprites use the
+earlier stable ShowFast path, with the original row bias. Damage alpha follows
+the retail 90-frame pulse period.
 """
 import struct
 
@@ -617,7 +616,7 @@ anext: addiu s1,s1,1
 
     card_src = f"""
 show:   lw t9,0xb0(a0)
-        lw t9,0x0c(t9)
+        lw t9,0x38(t9)
         jr t9
         nop
 
@@ -645,14 +644,6 @@ card:   addiu sp,sp,-0x40
         move a0,s0
         jal {damage_labels['damage']}
         move a1,s2
-        sll t0,s1,5
-        li t1,{REC + 0xA}
-        addu t0,t0,t1
-        lhu a0,0(t0)
-        jal 0x12cf30
-        move a1,zero
-        sw v0,{FONT + 0x160}(s0)
-        sw zero,{FONT + 0x164}(s0)
         addiu a0,s0,{RECT}
         jal show
         nop
@@ -666,9 +657,6 @@ cbody: move a0,s3
         bnez s1,cbody
         nop
         addiu a0,s0,{GAUGE}
-        jal show
-        nop
-        addiu a0,s0,{NAMEBK}
         jal show
         nop
         lw s1,0x2ac(s2)
@@ -707,9 +695,7 @@ cptex: sd t3,0x100(s2)
         addiu s3,s3,-1
         bnez s3,cpip
         nop
-cfont: addiu a0,s0,{FONT}
-        jal 0x132a10
-        nop
+cfont:
 cdone: ld ra,0(sp)
         ld s0,8(sp)
         ld s1,0x10(sp)
@@ -810,7 +796,7 @@ wplain: move a0,s0
         lui t1,1
         addu t0,t0,t1
         lw t2,0x620(t0)
-        addiu t2,t2,240
+        addiu t2,t2,960
         sw t2,0x620(t0)
         move a0,s1
         jal {card_labels['card']}
@@ -823,7 +809,7 @@ wplain: move a0,s0
         lui t1,1
         addu t0,t0,t1
         lw t2,0x620(t0)
-        addiu t2,t2,-240
+        addiu t2,t2,-960
         sw t2,0x620(t0)
         jal 0x10bea0
         move a0,zero

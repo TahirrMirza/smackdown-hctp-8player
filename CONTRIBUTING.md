@@ -20,8 +20,8 @@ Rules:
 | Area | What | Difficulty |
 | --- | --- | --- |
 | Select screens | Test the remaining 2, 3, 4, 5 and 7-player combinations in both 8-wrestler modes | easy |
-| HUD | Runtime-test and refine the experimental s62 cards for wrestlers 7 and 8 | medium–hard |
-| PLAY summary | List all 8 names | medium |
+| HUD | Runtime-test and refine the optional nameless body/finisher sidecar for wrestlers 7 and 8 | medium–hard |
+| PLAY summary | Test the eight-name/eight-model implementation on more emulators and real hardware | easy |
 | Referee | Optional referee in 8-wrestler matches | medium |
 | More modes | Other match types with 8 wrestlers (tag, triple threat, hardcore…): each needs a free match record, a rule entry and a menu item | easy–medium |
 | Elimination Chamber | See below | very hard |
@@ -62,4 +62,4 @@ If you try something, please write it up in an issue, even if it fails: a negati
 
 ## Reporting bugs
 
-Open an issue with: build used, emulator or console, match type, number of humans, and what you saw. For select-screen problems the monitor `tools/monitors/selmon.py` (PCSX2 with PINE enabled) produces a log that makes bugs much easier to find.
+Open an issue with: the commit hash, patched executable SHA-1, emulator or console, match type, number of humans, and what you saw. For select-screen problems the monitor `tools/monitors/selmon.py` (PCSX2 with PINE enabled) produces a log that makes bugs much easier to find.

@@ -1,7 +1,7 @@
 # Development log (reverse-engineering notes)
 
-Chronological notes written while building the mod. Sections 1-30 are history (several ideas were abandoned: the pnach prototype,
-the 7-wrestler experiments and multiple HUD approaches). **Section 32 is the current s62 prototype state; runtime verification is pending.**
+Chronological notes written while building the mod. Sections 1-36 are history (several ideas were abandoned: the pnach prototype,
+the 7-wrestler experiments and multiple HUD approaches). **Section 37 is the current s67 candidate; runtime verification is pending.**
 Generator names in these notes (`mk_s49.py`, `patch_s49.txt`, `tools/...`) map to this repository as: `mk_s49.py` -> `src/gen_patch.py`,
 `patch_s14.txt` -> `src/base_patches.txt`, `mkiso.py` -> `build.py`; older generators `mk_s15..s48` are not included (git history of the
 original working folder only). Addresses are virtual addresses in the game executable `SLUS_207.87` (file offset = vaddr - 0x100000 + 0x80).
@@ -9,7 +9,7 @@ Symbol names come from the executable's own symbol table (`tools/syms.py` regene
 
 
 Handoff file. Paste or point a new chat at this file to continue the work.
-Last updated: 2026-11-03. **READ SECTION 31 first for the current HUD work and `/Users/tahir/Documents/Smackdown HCTP/CONTEXT.md` section 24 for the complete handoff.** Older sections are chronological history and may describe abandoned builds. The game ELF is `SLUS_207.87`, game CRC `9B85B093`.
+Last updated: 2026-11-04. **READ SECTION 37 first for the current candidate and `/Users/tahir/Documents/Smackdown HCTP/CONTEXT.md` section 30 for the complete handoff and stable-build ledger.** Older sections are chronological history and may describe abandoned builds. The game ELF is `SLUS_207.87`, game CRC `9B85B093`.
 
 ---
 
@@ -523,4 +523,36 @@ mk_sNN.py (generators), patch_sNN.txt, mkiso.py, asm.py, dis.py (MIPS disassembl
 - The first s61 runtime screenshot showed the private cards around the lower centre/right instead of directly below the top pair. The logs were clean, both extra characters and the sidecar allocation were valid, and the running hooks matched s61.
 - The renderer bias at `CRender+0x10620` is in quarter-pixel units. The inherited `+960` value therefore moved the private cards about 240 pixels, hiding the left card under the retail lower HUD and leaving the right card visibly stranded near the centre. s62 uses `+240` / `-240`, a 60-pixel temporary offset.
 - Static validation remains 2,865 words, 16 code blocks and 19 live library functions, with no overlap or branch errors. Patched executable SHA-1: `20106ca894819fbc89b432580aeecf137f075901`.
+
+## 33. s63 eight-name PLAY summary (2026-11-04)
+
+- Wrapped the `MatchMenuFrame` call to `CreateRosterTable` so both records 72 and 85 receive slots 7/8 from side buffer E.
+- Runtime showed all eight names, but the native 3+3+2 arrangement placed the two bottom names across the PLAY / MATCH RULES bar.
+- Patched executable SHA-1: `1a31e5cc0c6a621f4d7ed105c46879fc05f406ea`.
+
+## 34. s64 compact names and two private PLAY models (2026-11-04)
+
+- Replaced the 3+3+2 roster with two compact four-name columns.
+- Added two private `MatchWrestler` objects for slots 7/8 and hooked their setup, motion and destruction without growing the retail six-pointer controller.
+- Runtime proved both objects loaded correctly, but their guessed X positions were outside the PLAY camera, so only six models were visible.
+- Patched executable SHA-1: `5964c5392d8a9d8ef9048b1edc38c053ea8a5664`.
+
+## 35. s65 camera-fit eight-wrestler PLAY scene (2026-11-04)
+
+- Redistributed all eight PLAY-scene positions inside the measured retail camera span, with staggered Z values.
+- **Confirmed stable by the user:** all eight animated wrestlers are visible and all eight names fit correctly in two compact columns.
+- This is the stable PLAY-screen rollback point. Patched executable SHA-1: `abae7117d8efefc203148dd31bdab005e66a9745`.
+
+## 36. s66 retail-six-HUD trial (2026-11-04)
+
+- Temporarily omitted the sidecar HUD after s65 inherited the unsuccessful s62 placement.
+- Abandoned immediately after clarification: the user wants the earlier slot-7/8 body PIPs and finisher-count behavior, and only wants their names removed.
+
+## 37. s67 nameless slot-7/8 HUD candidate (2026-11-04)
+
+- Restores the earlier fast-sprite sidecar path and original `+960` renderer bias.
+- Deliberately skips the private name backing and font. Body/damage PIPs, synchronized filled/empty finisher icons, finisher subtraction and private finisher feedback remain enabled.
+- Keeps the confirmed s65 PLAY screen unchanged.
+- Static validation: 3,308 words, 24 code blocks and 19 live library functions; checks pass. Patched executable SHA-1: `83468524c71338b1e4a10c56b0fc110bcb42d783`.
+- Runtime verification is pending. Stable rollback points are s53 for gameplay, s57 for HUD body/finisher logic, s60 for live finisher-count/subtraction behavior and s65 for the PLAY screen.
 

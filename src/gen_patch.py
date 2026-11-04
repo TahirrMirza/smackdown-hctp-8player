@@ -1,4 +1,4 @@
-"""Generator for the 8-player patch (build s62 corrected HUD sidecar row).
+"""Generator for the 8-player patch with the eight-wrestler PLAY scene and optional nameless slot-7/8 HUD cards.
 
 Reads the ORIGINAL SLUS_207.87 (path in $HCTP_ELF), writes a patch list (path in $HCTP_PATCH_OUT) with lines
     <vaddr hex> w <word hex>      one 32-bit word
@@ -13,13 +13,15 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asm import assemble, to_patch_lines
 
+# The sidecar uses the earlier stable fast-sprite layout, with live body and
+# finisher state but no name layer.  Set HCTP_HUD_PROTOTYPE=0 to omit it.
 HUD_PROTOTYPE = os.environ.get('HCTP_HUD_PROTOTYPE', '1') != '0'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ELF_PATH = os.environ['HCTP_ELF']
 PATCH_OUT = os.environ.get('HCTP_PATCH_OUT', 'patch.txt')
 base = open(os.path.join(HERE, 'base_patches.txt')).read().split('\n')
-drop = {0x130FA4, 0x45B581}   # old cave call (forced wrestlers in slots 6,7); record 49 keeps its original 6 players (s45: the 8-player mode is record 85)
+drop = {0x130FA4, 0x45B581}   # old cave call (forced wrestlers in slots 6,7); record 49 stays retail and record 85 is the 8-player mode
 out = []
 for l in base:
     p = l.split('#')[0].split()
@@ -32,7 +34,7 @@ out.append('# ---- two-pass 8-player flow ----')
 PASS, HAVE, ZERO, E, BACKUP = 0x110790, 0x110794, 0x1107A0, 0x110800, 0x110C98
 POS67 = 0x11227C
 CAVE = 0x111210   # dead sceFormat (620 B)
-# s47: the 8-player hooks apply to every record whose max-players byte is 8 (records 85 and 72); BRF = 1 when that record
+# The 8-player hooks apply to every record whose max-players byte is 8 (records 85 and 72); BRF = 1 when that record
 # is in group 7 (battle royal: every wrestler is its own team), 0 for the LADDER mode (teams of two)
 BRF = 0x113568
 FTAB, RT1, RT2 = 0x11356C, 0x11358C, 0x1135AC     # per mode (BRF * 16): frame teams, real teams of entries 0..3, real teams of entries 4..7
@@ -273,7 +275,7 @@ w(0x24E510, 0x0C000000 | (lab['cut'] >> 2), 'SelectWrestlerFrame::ChangeIntroduc
 w(0x299438, 0x0C000000 | (lab['blk'] >> 2), 'DrawMarker: jal blk (plate active override)')
 w(0x2994E0, 0x0C000000 | (lab['clx'] >> 2), 'DrawMarker: jal clx (clamp marker model index)')
 w(0x299760, 0x2A630008, 'DrawMarker loop over 8 slots')
-# (s45: string id 29 keeps its original text TRIPLE THREAT TORNADO TAG; the 8-player mode has its own title string id 832)
+# String id 29 keeps its retail text TRIPLE THREAT TORNADO TAG; the 8-player mode has its own title string id 832.
 # slot 6 is a wrestler now: full-height (0xc0) character texture buffer/readback
 w(0x1DC710, 0x241100C0, 'UpdateBloodTex: slot 6 height 0xc0')
 w(0x1BA474, 0x241400C0, 'char tex upload: slot 6 height 0xc0')
@@ -296,7 +298,7 @@ PCAVE = 0x1115C0
 TMPOLD = 0x1120D0            # 0x148-byte old-layout copy of the struct for PositionSelectWindowFrame
 TBLSTR = 0x112220            # tblstrPlayerNo (10 entries)
 TBLPNO = 0x112248            # tblPlayerNo (9 entries)
-GSPTR = 0x1134E0             # string pointers for ids 830, 831, 832 (s45: moved, 3 entries)
+GSPTR = 0x1134E0             # string pointers for ids 830, 831, 832 (relocated, 3 entries)
 STR7P, STR8P = 0x112274, 0x112278
 LAYOUT5 = 0x45BD10 + 5 * 0xC4
 NEWTBL = 0x112598            # relocated tbltagPadSelectLayout (14 rows x 0x30) + row 14 for layout 5
@@ -1348,6 +1350,14 @@ w(0x133C40, 0x0C000000 | (_pl['pitch'] >> 2), 'GeneralSelectMenu ctor: jal pitch
 from hud_patch import add_hud_patch
 if HUD_PROTOTYPE:
     add_hud_patch(out, w, assemble, to_patch_lines, HAVE)
+
+# The PLAY confirmation screen receives the two side-buffer wrestlers after
+# its native six-entry roster table has been built.
+from play_patch import add_play_patch
+add_play_patch(out, w, assemble, to_patch_lines, HAVE, E)
+
+from play_models import add_play_models
+add_play_models(out, w, assemble, to_patch_lines, HAVE, E)
 
 import asm as _asm
 for _a, _b in sorted(_asm.CODE_RANGES):
