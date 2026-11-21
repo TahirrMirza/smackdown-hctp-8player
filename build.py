@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 EXE_NAME = "SLUS_207.87"
 EXE_SIZE = 5652964
 ORIG_SHA1 = "d8ef8451378be669184de04478a550c8a46d02d6"      # original SLUS_207.87 (USA)
-PATCHED_SHA1 = "a24b4233fd0c19d14f68389e2f709316a9aac4cd"   # expected default generator output
+PATCHED_SHA1 = "8bb216bb6e3ee37e184239a1b93d657b4b0eec9f"   # s73 rematch HUD cleanup candidate
 SECTOR = 2048
 LOAD_VADDR, LOAD_OFF, LOAD_SIZE = 0x100000, 0x80, 0x389800   # program header 0: only this part of the file is loaded
 

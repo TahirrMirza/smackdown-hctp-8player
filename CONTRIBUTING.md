@@ -20,7 +20,7 @@ Rules:
 | Area | What | Difficulty |
 | --- | --- | --- |
 | Select screens | Test the remaining 2, 3, 4, 5 and 7-player combinations in both 8-wrestler modes | easy |
-| HUD | Add optional names to cards 7/8 without disturbing their body/finisher indicators | medium–hard |
+| HUD | Runtime-test the s69 75% cards, tighter top rows and body backdrops, including long names and finisher changes | medium |
 | PLAY summary | Test the eight-name/eight-model implementation on more emulators and real hardware | easy |
 | Referee | Optional referee in 8-wrestler matches | medium |
 | More modes | Other match types with 8 wrestlers (tag, triple threat, hardcore…): each needs a free match record, a rule entry and a menu item | easy–medium |

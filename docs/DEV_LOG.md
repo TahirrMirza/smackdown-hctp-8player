@@ -556,3 +556,58 @@ mk_sNN.py (generators), patch_sNN.txt, mkiso.py, asm.py, dis.py (MIPS disassembl
 - Static validation: 3,308 words, 24 code blocks and 19 live library functions; checks pass. Patched executable SHA-1: `83468524c71338b1e4a10c56b0fc110bcb42d783`.
 - Runtime verification is pending. Stable rollback points are s53 for gameplay, s57 for HUD body/finisher logic, s60 for live finisher-count/subtraction behavior and s65 for the PLAY screen.
 
+## 38. s68 complete HUD cards below the top pair (2026-11-21)
+
+- User reproduced s65's centre/right extra cards and overlapping backings. The emulator log confirms `s65.iso` and repeated TLB reads at `PC=0x121688`, address `0x35`. Read-only PINE inspection confirmed valid HUD/sidecar pointers and the normal-Show hook.
+- The finisher loop retained its texture pointer and counter in caller-saved registers across sprite draws. It now reloads the pointer and preserves the index on the stack.
+- Removed the global HUD matrix hooks. The discarded transform also confused the GPR numbers for `t0` and `t8`. All private sprites/fonts now use native fast paths and native size, with one field/frame-aware 72-unit row offset; the incoming renderer offset is restored exactly.
+- User explicitly requested names again. Added each wrestler's own name and native-width backings, controller labels and independent progress bars. Cards 7/8 use `0x1400` bytes each. Existing PLAY-screen hooks remain unchanged.
+- Added `hud_names.py`, `hud_details.py` and `tools/check_hud.py`. Generated-code execution checks cover initialization, both cards, long names, 0–5 finisher slots, filled/empty textures, labels, progress, hostile temporary-register clobbers and renderer-offset restoration. Code-cave/branch checks pass.
+- Candidate executable SHA-1: `8426b304c60b9cde16be97603ed750163719a951`. Runtime testing is pending; the user will test the ISO. Existing builds were preserved.
+
+## 39. s69 smaller HUDs and compact top rows (2026-11-21)
+
+- User confirmed s68's full HUD layout, then reported translucent card pieces above the extra body indicators and requested smaller HUDs and a narrower gap between the top four cards. The user clarified that the colored head-damage masks should remain.
+- Draw only the five private body-part masks, skipping the cloned decorative base/background sprite. Names/backings, damage colors, progress and finisher counts remain.
+- New `hud_scale.py` scales native/private card packets to 75% after native fast draw emission. Scope and pointer membership exclude unrelated UI. Cached objects and texture UVs are not modified. The two native epilogue hooks keep the existing stack-pop delay slots; RectDraw uses `t8` for Z to preserve `a0` for pointer membership.
+- Reduced the private row offset from 72 to 64 native units, making the displayed offset 48 units after scaling. Offset restoration and field-mode handling are retained.
+- `check_patch.py` and `check_hud.py` pass: 3,626 words, 33 code blocks, 19 live library functions. Execution checks include both native/private packet layouts, four card rows, both field modes, inactive scope, unrelated objects and body-layer selection.
+- ISO: `../build/s69.iso`; patched ELF SHA-1: `8049c27b4da3780e7d39156fda03e4360565cafe`. Visual testing is pending; the user will test. s68 and all other existing ISOs remain preserved.
+
+## 40. s70 ordered position boxes and team-row backgrounds (2026-11-21)
+
+- User requested position order 1–2 / 3–4 / 5–6 / 7–8 and a background row per team. Moved layout entries 5/7, updating their popup anchors and all affected directional links.
+- Ladder's record-85 team bytes and `RT1` now pair players by visible row: 0,0,1,1,2,2,3,3. `RT2` already supplied the final two pairs; the display-only selector `FTAB` remains unchanged. Survival still has teams 0..7, one per wrestler.
+- `position_rows.py` stores a mode word in a four-byte extension to PositionVS. The eight-player drawer uses a native stack-local rectangle to cover the old column/VS artwork and draw four bands. Ladder uses four colors; Survival uses neutral bands. Ordinary screens retain the retail VS drawer. Existing fade alpha controls the backgrounds.
+- New code caves: `0x3B2010`, `0x3EDDD0`, `0x3F2700`; immutable row data at `0x3C9480`. Native allocation/constructor hooks at `0x139CE0` / `0x139CEC`, PositionVS draw pointer `0x47B59C`.
+- `check_patch.py`, `check_hud.py` and new `check_position.py` pass: 3,770 words, 36 code blocks, 19 live library functions. The new execution checks cover mode initialization, four band positions/colors, alpha, zero-alpha handling and ordinary fallback; data checks cover order, navigation, popup anchors and actual teams.
+- ISO: `../build/s70.iso`; patched ELF SHA-1: `b57bf5c0d61c379c6afe7a0bf12b5d9a933b7b97`. Runtime testing remains with the user. s69 HUD code and all older ISO builds are preserved.
+
+## 41. s71 any-team assignment for 7P/8P and player-count layout (2026-11-21)
+
+- User reported 7P/8P only work in the bottom team row. Root cause was an intentional old `iaw` guard rejecting values 7/8 for slots 0–5. Removed that guard, retaining eight-slot deduplication and label refresh.
+- The position copy-in helper now decodes encoded pads `0x16/0x17` in the six normal sequence entries, not only the two side-buffer entries. Existing copy-out and wrestler-select pad/label conversions already support those values in any slot.
+- Extended generated-code tests assign both 7P and 8P to every box, check old assignments become COM, check labels, reopen the screen, traverse both 4-player selection pages, copy results back and verify physical-pad conversion.
+- User separately clarified the player-count menu needed layout/spacing/appearance work. New `player_count.py` scopes changes to the relocated nine-choice item list: centered text, 28-unit row spacing, 0.8×1.0 font scale and a 400×280 dark panel. Native selection/disabled flags/input remain. Other menus use the original paths. Caves `0x3EAD70` / `0x3C6650`, hooks `0x133C68` / `0x47B15C`.
+- `check_patch.py`, `check_position.py` and `check_hud.py` pass: 3,861 words, 38 code blocks, 19 live library functions. Menu tests verify exact constructor arguments, panel bounds, alpha and fallback for other item lists/counts.
+- ISO: `../build/s71.iso`; patched ELF SHA-1 `6a4282170852129d313cc77255767767b4f2d4ed`. Runtime confirmation is pending; the user tests personally. All older ISOs are preserved.
+
+## 42. s72 correct assignment popup and retail-card 7P/8P labels (2026-11-21)
+
+- User clarified the cramped menu is the **1P–8P / COM assignment popup**, and requested reverting the s71 count-menu redesign. Removed `player_count.py` and its hooks; count-menu constructor/Show words are verified against retail. The any-team assignment fix remains.
+- `position_popup.py` scopes a taller bar-animation frame (Y scale 1.9) to custom layout 14 with seven/eight humans. Text and frame anchors move to y=224/230/260/276, avoiding the header/footer. Native popup scale remains for other layouts or fewer humans; the existing text, input and fades are retained.
+- User reported Brock/Undertaker shown as COM after moving controllers 7/8 to retail cards, then clarified control works. Read-only PINE verified all eight COM flags were zero: Brock's slot used raw pad 23 (8P) and Undertaker's used 22 (7P). The native ID atlas falls back to COM for pads >=6.
+- New `hud_controller_labels.py` checks the actual COM flag and draws 7P/8P text in a stack clone of the loaded name font, at the native ID position. Real COM/1P–6P/missing-font paths use the original sprite. The packet scaler recognizes the temporary font through state +0x34, clearing that pointer after drawing. No input or COM flags are changed.
+- New label caves `0x3C6650` / `0x3C7FA0`, hook `0x23D114`; popup scale helper `0x3EAD70`, hook `0x13B8E0`. All code/data bounds and branch checks pass: 3,863 words, 39 code blocks, 19 live library functions.
+- Execution tests cover both human labels in all six retail cards, actual-COM and missing-font fallback, native positions, untouched control records and temporary-font scaling. Popup tests verify scoped scale and restored count-menu hooks; any-slot position/select-page tests still pass.
+- ISO: `../build/s72.iso`; patched ELF SHA-1 `9850efc6e815c25a9c347000707978b9b781cb85`. Runtime visuals remain for the user to test. All prior builds preserved.
+
+## 43. s73 rematch HUD-lifetime candidate (2026-11-21)
+
+- User reproduced a crash only after rematch, pressing Square/J to leave the ring. macOS reports at 16:14 and 16:17 show CPU-thread SIGSEGV in translated/recompiled execution. The surviving second-run emulator log first reports `TLB Miss pc=0x14B090 addr=0x1C`, then repeated PC 0 faults. This points to an invalid draw virtual call, not proof that the ring-exit logic itself is faulty.
+- Found a concrete lifetime defect: the private cards and owner pointer were never cleared by the native HUD destructor. Reusing the same native HUD address could bypass cloning and retain freed objects/resources. This fits the rematch-only symptom; runtime attribution is not yet confirmed.
+- New `hud_lifecycle.py` hooks `caSd5Game2D`'s ReleaseAllAnim call at `0x233DBC`. It resets private animations, frees the card block, zeros all 16 state words and tail-calls retail ReleaseAllAnim with the original argument. All three destructor thunks reach this path. Code cave: `0x3E9630`, 240 B.
+- Added execution regression for teardown followed by rebuilding at the same HUD address with invalidated old cards and changed resources; fresh clones are required. Repeated cleanup must not double-free. Existing HUD and position tests still pass.
+- s73 ELF SHA-1: `8bb216bb6e3ee37e184239a1b93d657b4b0eec9f`. Static checks: 3,889 words, 40 code blocks, 19 live library functions. Runtime fix confirmation is pending.
+- Crash evidence saved outside the public repo in `../tools/scratch/crash_s72_20261121/`. Read-only restart-aware PINE/log capture is `../tools/rematch_watch.py`, writing timestamped JSONL under `../tools/scratch/`. No runtime writes or UI automation were used.
+

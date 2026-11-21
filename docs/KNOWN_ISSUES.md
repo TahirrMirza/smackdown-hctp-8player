@@ -1,7 +1,14 @@
 # Known issues and ideas
 
 ## Open
-1. All eight wrestlers have HUD indicators, but cards 7/8 intentionally omit wrestler names and name backings. The retail HUD has only six native plate records, so the extra two use isolated body/damage and finisher-count cards.
+
+- **Rematch ring-exit crash (s72).** User reproduced a crash on Square/J after rematch. The first logged game fault was `PC=0x14B090`, load address `0x1C`, followed by PC 0 faults and a host CPU-thread segmentation fault. s73 adds missing private HUD teardown to prevent stale cache reuse; this is a candidate fix pending the same runtime test.
+
+- **s72 assignment-popup frame and HUD labels need runtime confirmation.** The 1P–8P / COM popup has a taller frame and bounded position. Human pads 7/8 should show the right text on every retail HUD card; real COMs keep COM labels. The mistaken s71 count-menu redesign is reverted. The any-team assignment fix remains.
+
+- **s70 position rows need runtime testing.** Verify the 1–2 / 3–4 / 5–6 / 7–8 ordering, D-pad movement, popups and background layering in both eight-player modes. Ladder now pairs teammates by row; Survival keeps eight singles. Ordinary position screens use the retail VS draw.
+
+1. **s69 HUD refinements need runtime testing.** The user confirmed s68 names and placement, then requested smaller HUDs, closer top rows and removal of translucent pieces above the extra body indicators. s69 scales all cards to 75%, reduces row spacing and omits the private decorative body backdrops. Verify readable names, consistent layer sizes, damage changes and finisher consumption in both eight-player modes.
 2. The pre-match PLAY screen is fixed: all eight names and all eight animated wrestlers are visible.
 3. No referee in the 8-wrestler matches (slot 6, the referee slot, is a wrestler). Matches still end by pin/finish; count-outs, DQ and submissions not exhaustively tested.
 4. Computer slots 7/8 default to the same wrestler as slot 6 when not picked.

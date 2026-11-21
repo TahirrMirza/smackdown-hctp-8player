@@ -1,4 +1,4 @@
-"""Generator for the 8-player patch with the eight-wrestler PLAY scene and optional nameless slot-7/8 HUD cards.
+"""Generator for the 8-player patch with the eight-wrestler PLAY scene and complete slot-7/8 HUD cards.
 
 Reads the ORIGINAL SLUS_207.87 (path in $HCTP_ELF), writes a patch list (path in $HCTP_PATCH_OUT) with lines
     <vaddr hex> w <word hex>      one 32-bit word
@@ -13,8 +13,8 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asm import assemble, to_patch_lines
 
-# The sidecar uses the earlier stable fast-sprite layout, with live body and
-# finisher state but no name layer.  Set HCTP_HUD_PROTOTYPE=0 to omit it.
+# Private cards reproduce the native top pair below them, including names,
+# labels and live body/finisher state. Set HCTP_HUD_PROTOTYPE=0 to omit them.
 HUD_PROTOTYPE = os.environ.get('HCTP_HUD_PROTOTYPE', '1') != '0'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -383,6 +383,16 @@ cpin:   move a3,ra
         addiu t4,zero,5
         sw t4,0x224(t9)
         lw t5,0x184(t9)
+        # Pads 7/8 may occupy any team box. Decode encoded pad values in the
+        # six sequence entries as well as the two side-buffer entries below.
+        addiu t6,t9,8
+        addiu t4,zero,6
+cinormal:jal xl
+        nop
+        addiu t6,t6,0x30
+        addiu t4,t4,-1
+        bnez t4,cinormal
+        nop
         li t3,{POS67}
         lw t4,0(t3)
         addiu t8,zero,-1
@@ -651,13 +661,7 @@ iv:     lw t0,0x1ec(s0)
         bnez at,iv2
         nop
         addiu t2,t0,-1
-iv2:    sltiu at,t6,7
-        bnez at,iok
-        nop
-        sltiu at,t2,6
-        bnez at,iskip
-        nop
-iok:    move a0,s0
+iv2:    move a0,s0
         jal apply
         nop
 iskip:  move a0,s1
@@ -854,11 +858,11 @@ def ent(x, y, u, d, l, r, i):
 
 
 YA, YB, YC, YD = 128, 206, 284, 362
-L5 = [ent(142, YA, 5, 2, 1, 6, 0), ent(498, YA, 8, 3, 6, 0, 1),
-      ent(142, YB, 0, 4, 3, 3, 2), ent(498, YB, 1, 7, 2, 2, 3),
-      ent(142, YC, 2, 5, 7, 7, 4), ent(142, YD, 4, 0, 8, 8, 5),
+L5 = [ent(142, YA, 7, 2, 1, 6, 0), ent(498, YA, 8, 3, 6, 0, 1),
+      ent(142, YB, 0, 4, 3, 3, 2), ent(498, YB, 1, 5, 2, 2, 3),
+      ent(142, YC, 2, 7, 5, 5, 4), ent(498, YC, 3, 8, 4, 4, 5),
       ent(320, YA, -1, -1, 0, 1, 6),
-      ent(498, YC, 3, 8, 4, 4, 9), ent(498, YD, 7, 1, 5, 5, 10)]
+      ent(142, YD, 4, 0, 8, 8, 9), ent(498, YD, 5, 1, 7, 7, 10)]
 out.append(f'{LAYOUT5:08X} {b"".join(L5).hex()}   # tblPosSelectLayout type 5 (9 entries, spills into unused type 6)')
 
 
@@ -896,7 +900,7 @@ _rows = _json.load(open(os.path.join(HERE, 'padlayout_rows.json')))
 for _t, _row in enumerate(_rows):
     for _i, _v in enumerate(_row):
         w(NEWTBL + _t * 0x30 + 4 * _i, _v, 'popup position table' if (_t, _i) == (0, 0) else '')
-_P = {0: (252, 180), 1: (388, 180), 2: (252, 215), 3: (388, 215), 4: (252, 260), 5: (252, 290), 6: (0, 0), 7: (388, 260), 8: (388, 290)}
+_P = {0: (252, 224), 1: (388, 224), 2: (252, 230), 3: (388, 230), 4: (252, 260), 5: (388, 260), 6: (0, 0), 7: (252, 276), 8: (388, 276)}
 for _i in range(9):
     _x, _y = _P[_i]
     w(NEWTBL + 14 * 0x30 + 8 * _i, _st.unpack('<I', _st.pack('<f', float(_x)))[0], 'popup pos row 14' if _i == 0 else '')
@@ -1291,6 +1295,8 @@ _o49 = 0x45AF60 + 49 * 32 - 0x100000 + 0x80
 _rec = bytearray(_ELF2[_o49:_o49 + 32])
 _rec[1] = 8
 _rec[8:12] = (832).to_bytes(4, 'little')
+for _i in range(6):
+    _rec[0x0D + 3 * _i] = _i // 2  # each visible row is one ladder team
 out.append(f'0045BA00 {bytes(_rec).hex()}   # record 85 = FATAL 4-WAY TORNADO TAG (copy of record 49, max 8, title 832)')
 # new item list for the LADDER sub-menu: 5 original items + (20, 85, 832); the descriptor at 0x45AE38 points to it
 LITEMS = 0x113498
@@ -1321,7 +1327,7 @@ w(0x45ADD8, 6, 'SURVIVAL menu descriptor: item count 5 -> 6')
 # Team tables for the 8-player flow: index = BRF*16 (mode 0 = LADDER teams of two, mode 1 = battle royal).
 # FTAB is display-only: both modes use alternating 0/1 so all four selector containers exist. RT1/RT2 restore the real match teams.
 w(BRF, 0, 'BRF flag')
-for _tab, _vals in ((FTAB, ((0, 1, 0, 1), (0, 1, 0, 1))), (RT1, ((0, 1, 0, 1), (0, 1, 2, 3))), (RT2, ((2, 2, 3, 3), (4, 5, 6, 7)))):
+for _tab, _vals in ((FTAB, ((0, 1, 0, 1), (0, 1, 0, 1))), (RT1, ((0, 0, 1, 1), (0, 1, 2, 3))), (RT2, ((2, 2, 3, 3), (4, 5, 6, 7)))):
     for _m in range(2):
         for _k in range(4):
             w(_tab + 16 * _m + 4 * _k, _vals[_m][_k], 'team table' if (_m, _k) == (0, 0) else '')
@@ -1358,6 +1364,12 @@ add_play_patch(out, w, assemble, to_patch_lines, HAVE, E)
 
 from play_models import add_play_models
 add_play_models(out, w, assemble, to_patch_lines, HAVE, E)
+
+from position_rows import add_position_rows
+add_position_rows(out, w, assemble, to_patch_lines)
+
+from position_popup import add_position_popup
+add_position_popup(out, w, assemble, to_patch_lines)
 
 import asm as _asm
 for _a, _b in sorted(_asm.CODE_RANGES):

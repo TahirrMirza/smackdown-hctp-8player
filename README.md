@@ -13,7 +13,7 @@ The main 8-player flow is runtime-tested. ALL COM, 1 PLAYER, 6 PLAYERS and 8 PLA
 
 The pre-match PLAY screen is also confirmed: all eight animated wrestlers are visible and all eight names fit in two compact columns.
 
-The in-match HUD supports all eight wrestlers. Wrestlers 1–6 keep the complete retail cards; wrestlers 7 and 8 receive body/damage indicators and live finisher-count icons. Their names are intentionally omitted because the retail HUD has only six native name-card records.
+The in-match HUD supports all eight wrestlers, including names, controller labels, body/damage, finisher progress and counts. The s68 layout was confirmed by the user. The s69 candidate reduces all cards to 75%, tightens the gap below the top pair and removes the extra body backdrops from cards 7/8. These refinements await runtime testing.
 
 Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
@@ -24,7 +24,9 @@ Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
 Also new:
 - The player-count list offers **1 to 8 PLAYERS** (plus ALL COM). Options are enabled only up to the number of pads the console sees.
-- A position screen with **8 boxes** where you choose which pad (or COM) plays each box, with new pad labels **7P** / **8P**.
+- A position screen with **8 boxes** where you choose which pad (or COM) plays each box, with new pad labels **7P** / **8P**. The s70 candidate orders them as 1–2, 3–4, 5–6, 7–8 and adds four horizontal team bands for Ladder; runtime testing is pending.
+- s71 removes the former restriction that kept 7P/8P in the last two boxes; either can be assigned to any team row. Runtime confirmation is pending.
+- s72 enlarges the **1P–8P / COM assignment popup** and corrects human 7P/8P HUD labels when those pads occupy a retail card. Visual confirmation is pending.
 - The wrestler select screen is split into **two 2×2 screens** (slots 1–4, then slots 5–8). Wrestlers picked on screen 1 are removed from the grid on screen 2.
 - All eight pads control their own panel, eight wrestlers load and fight.
 - All ordinary matches are unchanged (6-man etc. work as before).
@@ -38,7 +40,7 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 | Issue | Status |
 | --- | --- |
 | **Only LADDER "FATAL 4-WAY TORNADO TAG" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
-| **HUD cards 7/8.** All eight wrestlers have HUD indicators. Cards 7/8 show body damage and live finisher counts but intentionally omit names. | supported; names limited to cards 1–6 |
+| **HUD cards 7/8.** s68 names and placement confirmed; s69 adds 75% size, tighter spacing and removes the extra body backdrops. | s69 static checks pass; runtime testing pending |
 | **PLAY summary.** All 8 animated wrestlers and all 8 names appear in two compact columns. | fixed and runtime-confirmed |
 | **No referee** in the 8-wrestler matches. | by design, see below |
 | COM slots 7/8 may get the same default wrestler as slot 6 when not picked. | open |
@@ -46,7 +48,7 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 
 ### Eight-wrestler HUD
 
-The retail game contains complete HUD records for only six wrestlers. This patch preserves those six cards and adds two private HUD cards for wrestlers 7 and 8. The extra cards track body damage, finisher availability, finisher consumption and SmackDown feedback in real time. They intentionally omit wrestler names and name backings; names remain available for all eight wrestlers on the pre-match PLAY screen.
+The retail game contains complete HUD records for only six wrestlers. This patch preserves those six records and adds two private HUD cards for wrestlers 7 and 8. The extra cards include wrestler names and matching backings, controller labels, body damage, finisher progress, counts and consumption feedback. The confirmed layout places 7P below 1P and 8P below 2P. The s69 refinements uniformly shrink card graphics to 75%, reduce the row spacing and omit the extra decorative body backdrops while keeping the five colored body-part layers. These refinements need runtime confirmation.
 
 The implementation does not create a second retail HUD or update the main HUD twice. It uses isolated draw and animation state so the normal pause, timer, controller and match systems remain untouched. Technical details and addresses are in [HOW_IT_WORKS](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/HOW_IT_WORKS.md).
 

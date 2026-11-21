@@ -8,16 +8,14 @@ This prototype never extends or swaps the retail object. Once GAME2D has
 finished loading, it shallow-clones the configured draw objects for the two
 top cards into a private heap block. Texture/font tables remain shared
 read-only. Health pips and body/damage layers read slots 6 and 7 directly.
-The name backing and font are intentionally omitted. Private sprites use the
-earlier stable ShowFast path, with the original row bias. Damage alpha follows
-the retail 90-frame pulse period.
+Private cards use the same fast draw paths as retail cards. Native geometry is
+laid out first; HUD-card packets are then scaled uniformly to 75%. The private
+row sits below the top pair with a compact gap. Damage alpha follows retail.
 """
-import struct
-
 
 def add_hud_patch(out, w, assemble, to_patch_lines, have_addr):
     PULSE = 0x111F38     # sceSync, 408 B
-    MMW = 0x3C0B00       # ADXT_ExecErrChk, 588 B
+    CLONE = 0x3C0B00     # ADXT_ExecErrChk, 588 B
     INIT = 0x3B8288      # ADXM_SetupThrdEx, 436 B
     CARD = 0x121538      # sceMcSetFileInfo, 456 B
     WRAP = 0x408878      # sfxzmv_MakeOrgZ32TblByCCIR, 536 B
@@ -30,7 +28,6 @@ def add_hud_patch(out, w, assemble, to_patch_lines, have_addr):
     ANIMP, ANIMS = DATA + 0x0C, DATA + 0x14
     PREV = DATA + 0x1C
     FRAME = DATA + 0x24
-    PRM = DATA + 0x40
     GSD, GCH, REC, RENDER = 0x529300, 0x526EA0, 0x4921C0, 0x524EB0
 
     RECT = 0x000
@@ -39,125 +36,22 @@ def add_hud_patch(out, w, assemble, to_patch_lines, have_addr):
     FONT = 0x320
     PIPS = 0x490
     BODY = 0x9E0
-    CARD_SIZE = 0x1040
+    CARD_SIZE = 0x1400
     BLOCK_SIZE = CARD_SIZE * 2
+    ROW_GAP = 64
 
-    def fb(value):
-        return struct.unpack('<I', struct.pack('<f', float(value)))[0]
-
-    for a in range(DATA, PRM, 4):
-        w(a, 0, 'HUD sidecar state' if a == DATA else '')
-    params = (fb(0.50), fb(640 * 16 * 0.50), fb(448 * 16 * 0.50),
-              300, 340, 110, 300)
-    for i, value in enumerate(params):
-        w(PRM + i * 4, value, 'HUD 50% vertex transform' if i == 0 else '')
+    for a in range(DATA, DATA + 0x40, 4):
+        w(a, 0, "HUD sidecar state" if a == DATA else "")
 
     def c1(op, rs, rt, imm):
         return (op << 26) | (rs << 21) | (rt << 16) | (imm & 0xFFFF)
 
-    def lwc1(ft, off, base): return c1(0x31, base, ft, off)
     def swc1(ft, off, base): return c1(0x39, base, ft, off)
-    def mul_s(fd, fs, ft): return 0x46000002 | (ft << 16) | (fs << 11) | (fd << 6)
-    def add_s(fd, fs, ft): return 0x46000000 | (ft << 16) | (fs << 11) | (fd << 6)
-    def cvt_ws(fd, fs): return 0x46000024 | (fs << 11) | (fd << 6)
-    def mfc1(rt, fs): return 0x44000000 | (rt << 16) | (fs << 11)
     def mtc1(rt, fs): return 0x44800000 | (rt << 16) | (fs << 11)
     def cvt_sw(fd, fs): return 0x46800020 | (fs << 11) | (fd << 6)
     def raw(word): return f'        .word 0x{word:08X}'
 
-    mmw_src = f"""
-mmw:    addiu sp,sp,-0x20
-        sd ra,0(sp)
-        sd a1,8(sp)
-        sd a0,0x10(sp)
-        jal 0x14b500
-        nop
-        ld a1,8(sp)
-        ld a0,0x10(sp)
-        li t0,{GACT}
-        lw t1,0(t0)
-        beqz t1,mdone
-        nop
-        li t0,{PRM}
-{raw(lwc1(2, 0, 8))}
-{raw(lwc1(4, 4, 8))}
-{raw(lwc1(6, 8, 8))}
-        lw t3,0xc(t0)
-        lw t4,0x10(t0)
-        lw t5,0x14(t0)
-        lw t6,0x18(t0)
-{raw(lwc1(0, 0, 4))}
-{raw(cvt_ws(8, 0))}
-        nop
-{raw(mfc1(8, 8))}
-        move t9,zero
-        slt t1,t8,t3
-        bnez t1,mxl
-        nop
-        slt t1,t4,t8
-        beqz t1,mxc
-        nop
-        addiu t9,zero,1
-        b mxc
-        nop
-mxl:   addiu t9,zero,-1
-mxc:
-{raw(lwc1(0, 4, 4))}
-{raw(cvt_ws(8, 0))}
-        nop
-{raw(mfc1(8, 8))}
-        move t7,zero
-        slt t1,t8,t5
-        bnez t1,myl
-        nop
-        slt t1,t6,t8
-        beqz t1,myc
-        nop
-        addiu t7,zero,1
-        b myc
-        nop
-myl:   addiu t7,zero,-1
-myc:
-        addiu t2,zero,4
-mlp:
-{raw(lwc1(0, 0, 5))}
-        beqz t9,mxn
-        nop
-        slt t8,t9,zero
-        bnez t8,mxs
-        nop
-{raw(mul_s(0, 0, 2))}
-{raw(add_s(0, 0, 4))}
-{raw(swc1(0, 0, 5))}
-        j mxn
-        nop
-mxs:
-{raw(mul_s(0, 0, 2))}
-{raw(swc1(0, 0, 5))}
-mxn:
-{raw(lwc1(0, 4, 5))}
-        beqz t7,myn
-        nop
-        slt t8,t7,zero
-        bnez t8,mys
-        nop
-{raw(mul_s(0, 0, 2))}
-{raw(add_s(0, 0, 6))}
-{raw(swc1(0, 4, 5))}
-        j myn
-        nop
-mys:
-{raw(mul_s(0, 0, 2))}
-{raw(swc1(0, 4, 5))}
-myn:   addiu a1,a1,16
-        addiu t2,t2,-1
-        bnez t2,mlp
-        nop
-mdone: ld ra,0(sp)
-        addiu sp,sp,0x20
-        jr ra
-        nop
-
+    mmw_src = """
 clone:  lw t0,0(a0)
         sw t0,0(a1)
         addiu a0,a0,4
@@ -194,8 +88,15 @@ csloop:lw a0,0(s4)
         jr ra
         nop
 """
-    mmw_words, mmw_labels = assemble(MMW, mmw_src)
-    assert MMW + 4 * len(mmw_words) <= MMW + 588
+    mmw_words, mmw_labels = assemble(CLONE, mmw_src)
+    assert CLONE + 4 * len(mmw_words) <= CLONE + 588
+
+    from hud_scale import add_scale_patch
+    scale_begin = add_scale_patch(out, w, assemble, to_patch_lines, DATA)
+
+    from hud_details import add_details_patch
+    detail_init, label_draw, gauge_draw = add_details_patch(
+        out, assemble, to_patch_lines, mmw_labels['clone'])
 
     pulse_src = f"""
 pulse: addiu t0,zero,90
@@ -296,6 +197,10 @@ iloop: sll t0,s2,8
         move a1,t3
         jal {mmw_labels['clones']}
         addiu a2,zero,6
+        move a0,s0
+        move a1,s3
+        jal {detail_init}
+        move a2,s2
         addiu s2,s2,1
         addiu s3,s3,{CARD_SIZE}
         slti t0,s2,2
@@ -434,7 +339,7 @@ pose:   addiu sp,sp,-0x40
         move a0,s0
         jal 0x23b0c0
         move a1,s2
-        addiu v0,v0,68
+        addiu v0,v0,{ROW_GAP + 8}
 {raw(mtc1(2, 0))}
         nop
 {raw(cvt_sw(0, 0))}
@@ -614,6 +519,9 @@ anext: addiu s1,s1,1
     anim_words, anim_labels = assemble(ANIM, anim_src)
     assert ANIM + 4 * len(anim_words) <= ANIM + 424, hex(ANIM + 4 * len(anim_words))
 
+    from hud_names import add_name_patch
+    names = add_name_patch(out, assemble, to_patch_lines, FONT, NAMEBK, RECT)
+
     card_src = f"""
 show:   lw t9,0xb0(a0)
         lw t9,0x38(t9)
@@ -628,6 +536,7 @@ card:   addiu sp,sp,-0x40
         sd s3,0x20(sp)
         move s0,a0
         move s1,a1
+        sw s1,0x30(sp)
         sll t0,s1,5
         li t1,{REC + 0xA}
         addu t0,t0,t1
@@ -642,13 +551,18 @@ card:   addiu sp,sp,-0x40
         beqz s2,cdone
         nop
         move a0,s0
+        jal {names}
+        move a1,s1
+        move a0,s0
         jal {damage_labels['damage']}
         move a1,s2
         addiu a0,s0,{RECT}
         jal show
         nop
-        addiu s3,s0,{BODY}
-        addiu s1,zero,6
+        # The first cloned body sprite includes the decorative translucent
+        # panel. Draw the five complete body-part masks without that panel.
+        addiu s3,s0,{BODY + 0x110}
+        addiu s1,zero,5
 cbody: move a0,s3
         jal show
         nop
@@ -659,6 +573,9 @@ cbody: move a0,s3
         addiu a0,s0,{GAUGE}
         jal show
         nop
+        move a0,s0
+        jal {gauge_draw}
+        move a1,s2
         lw s1,0x2ac(s2)
         lw s3,0x2b0(s2)
         slt t1,s3,s1
@@ -674,12 +591,12 @@ cpos:  slt t0,zero,s3
         beqz t0,cfont
         nop
         addiu s2,s0,{PIPS}
+        sw zero,0x28(sp)
+cpip:  lw t0,0x28(sp)
         li t2,{GSD}
         lw t2,0(t2)
-        addiu t2,t2,0x50
-        lw t2,0x45bc(t2)
-        move t0,zero
-cpip:  slt t1,t0,s1
+        lw t2,0x460c(t2)
+        slt t1,t0,s1
         beqz t1,cpempty
         nop
         ld t3,0x10(t2)
@@ -691,11 +608,22 @@ cptex: sd t3,0x100(s2)
         jal show
         nop
         addiu s2,s2,0x110
+        lw t0,0x28(sp)
         addiu t0,t0,1
+        sw t0,0x28(sp)
         addiu s3,s3,-1
         bnez s3,cpip
         nop
 cfont:
+        addiu a0,s0,{NAMEBK}
+        jal show
+        nop
+        addiu a0,s0,{FONT}
+        jal 0x162780
+        move a1,zero
+        move a0,s0
+        jal {label_draw}
+        lw a1,0x30(sp)
 cdone: ld ra,0(sp)
         ld s0,8(sp)
         ld s1,0x10(sp)
@@ -762,13 +690,12 @@ wrap:   addiu sp,sp,-0x40
         sd s0,8(sp)
         sd s1,0x10(sp)
         move s0,a0
+        jal {scale_begin}
+        nop
         li t0,{have_addr}
         lw t1,0(t0)
         beqz t1,wplain
         nop
-        li t0,{GACT}
-        addiu t1,zero,1
-        sw t1,0(t0)
         jal track
         nop
         addiu a0,s0,-0x20
@@ -796,7 +723,18 @@ wplain: move a0,s0
         lui t1,1
         addu t0,t0,t1
         lw t2,0x620(t0)
-        addiu t2,t2,960
+        sw t2,0x28(sp)
+        addiu t3,zero,{ROW_GAP * 16}
+        lw t4,0x588(t0)
+        beqz t4,woffset
+        nop
+        li t1,{RENDER}
+        lw t1,0(t1)
+        lw t4,0x10(t1)
+        bnez t4,woffset
+        nop
+        addiu t3,zero,{ROW_GAP * 8}
+woffset:addu t2,t2,t3
         sw t2,0x620(t0)
         move a0,s1
         jal {card_labels['card']}
@@ -808,8 +746,7 @@ wplain: move a0,s0
         lw t0,0(t0)
         lui t1,1
         addu t0,t0,t1
-        lw t2,0x620(t0)
-        addiu t2,t2,-960
+        lw t2,0x28(sp)
         sw t2,0x620(t0)
         jal 0x10bea0
         move a0,zero
@@ -826,7 +763,7 @@ wdone: li t0,{GACT}
     assert WRAP + 4 * len(wrap_words) <= WRAP + 536, hex(WRAP + 4 * len(wrap_words))
 
     for addr, words, label in ((PULSE, pulse_words, 'HUD retail-timing damage pulse'),
-                               (MMW, mmw_words, 'HUD vertex scale'),
+                               (CLONE, mmw_words, 'HUD private draw-object cloning'),
                                (INIT, init_words, 'HUD sidecar clone init'),
                                (DMG, damage_words, 'HUD sidecar damage colors'),
                                (ANIM, anim_words, 'HUD sidecar finisher animation'),
@@ -835,9 +772,13 @@ wdone: li t0,{GACT}
                                (WRAP, wrap_words, 'HUD sidecar draw wrapper')):
         out.extend(to_patch_lines(addr, words, label))
 
-    for caller in (0x15E0CC, 0x15E88C, 0x15EF08, 0x15FF0C,
-                   0x160A8C, 0x16147C, 0x161C8C):
-        w(caller, 0x0C000000 | (mmw_labels['mmw'] >> 2),
-          'MulMatrix caller -> HUD scale wrapper')
+    # Native objects and matrix callers stay untouched. The fast-draw return
+    # hooks scale only emitted packets belonging to card elements.
     w(0x47F05C, wrap_labels['wrap'],
       'CSpriteCtrlGame2D CDraw vtable[3] -> isolated sidecar wrapper')
+
+    from hud_controller_labels import add_controller_labels
+    add_controller_labels(out, w, assemble, to_patch_lines, mmw_labels['clone'])
+
+    from hud_lifecycle import add_hud_lifecycle
+    add_hud_lifecycle(out, w, assemble, to_patch_lines, DATA, ANIM)
