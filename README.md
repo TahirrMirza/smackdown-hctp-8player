@@ -13,7 +13,7 @@ The main 8-player flow is runtime-tested. ALL COM, 1 PLAYER, 6 PLAYERS and 8 PLA
 
 The pre-match PLAY screen is also confirmed: all eight animated wrestlers are visible and all eight names fit in two compact columns.
 
-The in-match HUD supports all eight wrestlers, including names, controller labels, body/damage, finisher progress and counts. The s68 layout was confirmed by the user. The s69 candidate reduces all cards to 75%, tightens the gap below the top pair and removes the extra body backdrops from cards 7/8. These refinements await runtime testing.
+The in-match HUD supports all eight wrestlers, including names, controller labels, body/damage, finisher progress and counts. All cards use 75% scale with tighter top-row spacing; cards 7/8 sit below the top pair without extra decorative body backdrops. The maintainer has tested the current source in PCSX2, including rematching after the HUD cleanup fix. Broader emulator and hardware testing is welcome.
 
 Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
@@ -24,9 +24,9 @@ Two new eight-wrestler match types, supporting 1–8 human players or ALL COM:
 
 Also new:
 - The player-count list offers **1 to 8 PLAYERS** (plus ALL COM). Options are enabled only up to the number of pads the console sees.
-- A position screen with **8 boxes** where you choose which pad (or COM) plays each box, with new pad labels **7P** / **8P**. The s70 candidate orders them as 1–2, 3–4, 5–6, 7–8 and adds four horizontal team bands for Ladder; runtime testing is pending.
-- s71 removes the former restriction that kept 7P/8P in the last two boxes; either can be assigned to any team row. Runtime confirmation is pending.
-- s72 enlarges the **1P–8P / COM assignment popup** and corrects human 7P/8P HUD labels when those pads occupy a retail card. Visual confirmation is pending.
+- A position screen with **8 boxes** where you choose which pad (or COM) plays each box, with new pad labels **7P** / **8P**. Rows read 1–2, 3–4, 5–6, 7–8, with four horizontal team bands for Ladder.
+- Controllers 7P/8P can be assigned to any position or team row.
+- The **1P–8P / COM assignment popup** fits all nine choices, and HUD labels display human controllers 7P/8P in any card.
 - The wrestler select screen is split into **two 2×2 screens** (slots 1–4, then slots 5–8). Wrestlers picked on screen 1 are removed from the grid on screen 2.
 - All eight pads control their own panel, eight wrestlers load and fight.
 - All ordinary matches are unchanged (6-man etc. work as before).
@@ -40,7 +40,7 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 | Issue | Status |
 | --- | --- |
 | **Only LADDER "FATAL 4-WAY TORNADO TAG" and SURVIVAL "8-MAN BATTLE ROYAL" are 8-player.** All other match types (tag, triple threat, hardcore, Elimination Chamber, Royal Rumble, …) are not converted. | open, [contributions welcome](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/CONTRIBUTING.md) |
-| **HUD cards 7/8.** s68 names and placement confirmed; s69 adds 75% size, tighter spacing and removes the extra body backdrops. | s69 static checks pass; runtime testing pending |
+| **HUD and rematches.** Eight complete cards at 75% scale; private HUD resources are released between matches. | maintainer-tested in PCSX2; broader testing welcome |
 | **PLAY summary.** All 8 animated wrestlers and all 8 names appear in two compact columns. | fixed and runtime-confirmed |
 | **No referee** in the 8-wrestler matches. | by design, see below |
 | COM slots 7/8 may get the same default wrestler as slot 6 when not picked. | open |
@@ -48,7 +48,7 @@ Tested by the author: PCSX2 2.8.2 (macOS), an Android PS2 emulator, and a real P
 
 ### Eight-wrestler HUD
 
-The retail game contains complete HUD records for only six wrestlers. This patch preserves those six records and adds two private HUD cards for wrestlers 7 and 8. The extra cards include wrestler names and matching backings, controller labels, body damage, finisher progress, counts and consumption feedback. The confirmed layout places 7P below 1P and 8P below 2P. The s69 refinements uniformly shrink card graphics to 75%, reduce the row spacing and omit the extra decorative body backdrops while keeping the five colored body-part layers. These refinements need runtime confirmation.
+The retail game contains complete HUD records for only six wrestlers. This patch preserves those six records and adds two private HUD cards for wrestlers 7 and 8. The extra cards include wrestler names and matching backings, controller labels, body damage, finisher progress, counts and consumption feedback. Cards for wrestler slots 7 and 8 appear below the top two cards. All card graphics use 75% scale with compact row spacing. The private cards draw the five colored body-part layers without an extra decorative backdrop. Private card and animation resources are released when the native HUD is destroyed, preventing stale cached objects across rematches.
 
 The implementation does not create a second retail HUD or update the main HUD twice. It uses isolated draw and animation state so the normal pause, timer, controller and match systems remain untouched. Technical details and addresses are in [HOW_IT_WORKS](https://github.com/TahirrMirza/smackdown-hctp-8player/blob/main/docs/HOW_IT_WORKS.md).
 
@@ -73,12 +73,15 @@ cd smackdown-hctp-8player
 python3 build.py --iso "/path/to/WWE SmackDown! Here Comes the Pain (USA).iso" --out smackdown_8p.iso
 ```
 
+Build from the source revision you want to test; the output filename is your choice. Local experiment filenames mentioned in the development log are not published releases. Identify bug reports by repository commit and the executable SHA-1 printed by `build.py`.
+
 The script
+
 1. finds `SLUS_207.87` inside the ISO,
 2. checks its SHA-1 (wrong file → it stops),
 3. generates the patch from that executable,
 4. writes a copy of the ISO with the patched executable (same size, same sector position, nothing else moves),
-5. re-reads it and verifies the result: the current default patched executable SHA-1 must be `a24b4233fd0c19d14f68389e2f709316a9aac4cd`.
+5. re-reads it and verifies the result: the current default patched executable SHA-1 must be `8bb216bb6e3ee37e184239a1b93d657b4b0eec9f`.
 
 Other modes:
 

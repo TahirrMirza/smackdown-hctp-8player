@@ -1,15 +1,12 @@
 # Development log (reverse-engineering notes)
 
-Chronological notes written while building the mod. Sections 1-36 are history (several ideas were abandoned: the pnach prototype,
-the 7-wrestler experiments and multiple HUD approaches). **Section 37 is the current s67 candidate; runtime verification is pending.**
-Generator names in these notes (`mk_s49.py`, `patch_s49.txt`, `tools/...`) map to this repository as: `mk_s49.py` -> `src/gen_patch.py`,
-`patch_s14.txt` -> `src/base_patches.txt`, `mkiso.py` -> `build.py`; older generators `mk_s15..s48` are not included (git history of the
-original working folder only). Addresses are virtual addresses in the game executable `SLUS_207.87` (file offset = vaddr - 0x100000 + 0x80).
-Symbol names come from the executable's own symbol table (`tools/syms.py` regenerates `symbols.txt` from your copy).
+This is a historical record of experiments, including abandoned implementations. For the current behavior, build commands and limitations, read [README.md](../README.md), [RUNNING.md](RUNNING.md) and [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
+Labels such as `s49` and `s73` are local experiment identifiers, not release versions or downloadable artifacts. Historical ISO, patch-list and scratch paths describe the original development workspace; those files are not included and are not required to build the current source. Historical test results apply to the implementation described in that entry, not necessarily to the current checkout.
 
-Handoff file. Paste or point a new chat at this file to continue the work.
-Last updated: 2026-11-04. **READ SECTION 37 first for the current candidate and `/Users/tahir/Documents/Smackdown HCTP/CONTEXT.md` section 30 for the complete handoff and stable-build ledger.** Older sections are chronological history and may describe abandoned builds. The game ELF is `SLUS_207.87`, game CRC `9B85B093`.
+To reproduce the current patch, use `build.py` with your own unmodified USA disc dump as documented in the README. Identify results by repository commit and the executable SHA-1 printed by the build. Older commands below are preserved as history, not as current build instructions. The old `mk_s49.py` corresponds to `src/gen_patch.py`, `patch_s14.txt` to `src/base_patches.txt`, and `mkiso.py` to `build.py`.
+
+Addresses are virtual addresses in `SLUS_207.87` (file offset = vaddr − 0x100000 + 0x80). Symbol names come from the executable's symbol table; `tools/syms.py` regenerates them from your copy. Game CRC: `9B85B093`.
 
 ---
 
@@ -611,3 +608,8 @@ mk_sNN.py (generators), patch_sNN.txt, mkiso.py, asm.py, dis.py (MIPS disassembl
 - s73 ELF SHA-1: `8bb216bb6e3ee37e184239a1b93d657b4b0eec9f`. Static checks: 3,889 words, 40 code blocks, 19 live library functions. Runtime fix confirmation is pending.
 - Crash evidence saved outside the public repo in `../tools/scratch/crash_s72_20261121/`. Read-only restart-aware PINE/log capture is `../tools/rematch_watch.py`, writing timestamped JSONL under `../tools/scratch/`. No runtime writes or UI automation were used.
 
+
+## 44. Current-source validation and public documentation (2026-11-21)
+
+- After the HUD lifetime cleanup, read-only PINE capture showed private state clearing between matches and valid draw objects being rebuilt. No new TLB faults or host crash were observed during the monitored session; the maintainer reported that it looked good. This is initial runtime evidence, not exhaustive platform validation.
+- Public setup and architecture docs now describe source behavior directly. Local experiment identifiers remain only in this historical log; no private build archive or workspace handoff file is needed to follow the current build instructions.

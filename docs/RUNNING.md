@@ -27,22 +27,22 @@ The patch is plain executable changes; no emulator features are used. It was tes
 ## Playing an 8-player match
 
 1. Exhibition → pick the category **LADDER** and choose the last item **FATAL 4-WAY TORNADO TAG**, or pick **SURVIVAL** and choose the last item **8-MAN BATTLE ROYAL**.
-2. Choose **1–8 PLAYERS** or **ALL COM**. ALL COM, 1, 6 and 8 players are confirmed working in both new modes. The temporary s71 player-count redesign was reverted in s72.
-3. **Position screen:** eight boxes. In s70, read rows left to right: 1–2, 3–4, 5–6, 7–8. Assign which pad plays each box. Ladder has four colored team rows (one pair per row); Survival has neutral row bands and eight separate competitors. The new row presentation awaits runtime confirmation.
+2. Choose **1–8 PLAYERS** or **ALL COM**. ALL COM, 1, 6 and 8 players are confirmed working in both new modes.
+3. **Position screen:** eight boxes. Read rows left to right: 1–2, 3–4, 5–6, 7–8. Assign which pad plays each box. Ladder has four colored team rows (one pair per row); Survival has neutral row bands and eight separate competitors.
 
-   s71 allows 7P/8P in any box. Moving a pad clears its old box to COM; assign displaced pads before choosing Continue. The assignments are preserved across both wrestler-selection pages and when reopening the position screen.
+   Controllers 7P/8P can be assigned to any box. Moving a pad clears its old box to COM; assign displaced pads before choosing Continue. The assignments are preserved across both wrestler-selection pages and when reopening the position screen.
 
-   s72 expands the assignment popup frame for seven/eight human players so the 1P–8P and COM choices have room. Popup anchors stay below the title and above the help bar. This appearance needs runtime confirmation.
+   The assignment popup frame expands for seven/eight human players so the 1P–8P and COM choices have room. Popup anchors stay below the title and above the help bar.
 4. **Wrestler select, screen 1:** slots 1–4 pick. Confirm.
 5. **Wrestler select, screen 2:** slots 5–8 pick. Wrestlers chosen on screen 1 are not in the grid anymore. Cancel on screen 2 goes back to screen 1.
 6. Stage, rules, play.
 
 On the PLAY screen, the current patch should show all eight animated wrestlers and all eight names in two compact columns.
 
-The confirmed s68 layout places complete private cards for wrestlers 7 and 8 below the top two HUDs, including names, controller labels, body/damage, finisher progress and counts. The s69 candidate makes all cards 75% size, tightens the top-row spacing and removes the extra body backdrops. s72 fixes the false COM text for human controllers 7/8 in retail cards; control assignments are unchanged. These refinements await runtime testing; the eight-name PLAY screen remains unchanged.
+Complete HUD cards for wrestler slots 7 and 8 appear below the top two cards, including names, controller labels, body/damage, finisher progress and counts. All cards use 75% size with compact spacing. Human controllers 7/8 display their actual pad labels in every card. The current source has received maintainer testing in PCSX2; please report results on other emulators and real hardware.
 
 ## If something breaks
 
-- Tell which screen it happened on, the repository commit, which emulator/console you used, and whether the ISO was built from the unmodified dump. The s73 build prints executable SHA-1 `8bb216bb6e3ee37e184239a1b93d657b4b0eec9f`.
-- s73 includes a candidate fix for a crash when leaving the ring after rematch. Boot it fresh, rematch, then test Square/J to exit the ring. Runtime confirmation is pending.
-- Try `python3 tools/check_patch.py` on your generated patch (needs `--keep-patch`).
+- Tell which screen it happened on, the repository commit, which emulator/console you used, and whether the ISO was built from the unmodified dump. The current default source produces executable SHA-1 `8bb216bb6e3ee37e184239a1b93d657b4b0eec9f`.
+- For rematch problems, boot the freshly built ISO, play a match, choose rematch, then press Square (or your mapped keyboard key) to exit the ring. Report whether the failure occurs in the first match or only after rematching. The current source releases private HUD resources between matches; initial maintainer testing after this fix was successful.
+- Keep a patch list when building with `--keep-patch patch.txt`. With the original executable extracted as `SLUS_207.87`, run `python3 tools/check_patch.py SLUS_207.87 patch.txt`.
