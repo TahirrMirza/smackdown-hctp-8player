@@ -250,14 +250,6 @@ blk:    sll a2,s3,2
 bdone:  j 0x29945c
         nop
 
-# ---------- DrawMarker: marker model index clamp (models exist for HUD slots 0..6) ----------
-clx:    lw a0,0x390(s0)
-        sltiu at,a0,7
-        bnez at,clk
-        nop
-        addiu a0,zero,6
-clk:    jr ra
-        nop
 """
 words, lab = assemble(CAVE, src)
 for l in to_patch_lines(CAVE, words, 'two-pass cave code in dead sceFormat'):
@@ -273,7 +265,6 @@ w(0x131DB4, 0x0C000000 | (lab['pe'] >> 2), 'PlayerEntryNext: jal pe')
 w(0x130DF4, 0x0C000000 | (lab['fix'] >> 2), 'SetCommon: jal fix (entry address for slots>=6)')
 w(0x24E510, 0x0C000000 | (lab['cut'] >> 2), 'SelectWrestlerFrame::ChangeIntroduction: jal cut')
 w(0x299438, 0x0C000000 | (lab['blk'] >> 2), 'DrawMarker: jal blk (plate active override)')
-w(0x2994E0, 0x0C000000 | (lab['clx'] >> 2), 'DrawMarker: jal clx (clamp marker model index)')
 w(0x299760, 0x2A630008, 'DrawMarker loop over 8 slots')
 # String id 29 keeps its retail text TRIPLE THREAT TORNADO TAG; the 8-player mode has its own title string id 832.
 # slot 6 is a wrestler now: full-height (0xc0) character texture buffer/readback
@@ -1370,6 +1361,12 @@ add_position_rows(out, w, assemble, to_patch_lines)
 
 from position_popup import add_position_popup
 add_position_popup(out, w, assemble, to_patch_lines)
+
+from whip_reversal import add_whip_reversal
+add_whip_reversal(out, w, assemble, to_patch_lines)
+
+from player_marker import add_player_marker
+add_player_marker(out, w, assemble, to_patch_lines, HAVE)
 
 import asm as _asm
 for _a, _b in sorted(_asm.CODE_RANGES):
