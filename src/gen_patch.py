@@ -21,7 +21,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ELF_PATH = os.environ['HCTP_ELF']
 PATCH_OUT = os.environ.get('HCTP_PATCH_OUT', 'patch.txt')
 base = open(os.path.join(HERE, 'base_patches.txt')).read().split('\n')
-drop = {0x130FA4, 0x45B581}   # old cave call (forced wrestlers in slots 6,7); record 49 stays retail and record 85 is the 8-player mode
+# These base patches are replaced by the current match setup and empty-slot sizing.
+drop = {0x130FA4, 0x45B581, 0x1FF004, 0x1FF00C, 0x1FF018}
 out = []
 for l in base:
     p = l.split('#')[0].split()
@@ -1279,7 +1280,7 @@ for _a in (0x24D5AC, 0x24D698, 0x24DA80, 0x24DF74, 0x24E048, 0x24E1B8, 0x24E24C,
 w(0x24F20C, 0x24060007, 'NextSearch: reverse loop start 5 -> 7')
 w(0x24F324, 0x24020007, 'ReverseSearch: loop start 5 -> 7')
 
-# ---------------- LADDER list: restore TRIPLE THREAT TORNADO TAG (record 49) and add FATAL 4-WAY TORNADO TAG (record 85) ----------------
+# ---------------- LADDER list: TRIPLE THREAT TORNADO TAG (record 49) and FATAL 4-WAY TORNADO TAG (record 85) ----------------
 # record 85 (unused TIME LIMIT record at the end of s_GameTypeTbl) = copy of record 49 with max players 8 and title string id 832
 _ELF2 = open(ELF_PATH, 'rb').read()
 _o49 = 0x45AF60 + 49 * 32 - 0x100000 + 0x80
@@ -1296,7 +1297,28 @@ for _i, _t in enumerate(((20, 47, 8), (20, 48, 21), (20, 49, 29), (20, 50, 30), 
         w(LITEMS + 12 * _i + 4 * _j, _v, 'LADDER item list' if (_i, _j) == (0, 0) else '')
 # the per-record rule data (referee flag, ladder / belt setup ...) is read from the 64-byte rule table at 0x455DC0 indexed by the
 # RECORD number (GetDefRule 0x12CC90 is called with seq+0x140 = record): entry 85 = copy of entry 49 with its own id byte
-_e49 = bytearray(_ELF2[0x455DC0 + 49 * 64 - 0x100000 + 0x80:0x455DC0 + 50 * 64 - 0x100000 + 0x80])
+_rule49 = 0x455DC0 + 49 * 64
+_rule49_off = _rule49 - 0x100000 + 0x80
+_e49 = bytearray(_ELF2[_rule49_off:_rule49_off + 64])
+assert _e49[0x21] == 1, 'unexpected Ladder Triple Threat Tornado Tag referee flag'
+out.append(f'{_rule49 + 0x21:08X} 00   # Ladder Triple Threat Tornado Tag: disable the referee')
+# Keep the former referee's 164 KB page budget when the slot is empty.
+# The usual 848 KB reservation would take 684 KB from the shared game heap.
+_empty_page_origin = 0x1FEFF8
+_empty_page_words, _ = assemble(_empty_page_origin, """
+        lui v1,0x49
+        lbu v1,0x20c0(v1)
+        addiu v0,zero,49
+        bne v1,v0,done
+        addiu s2,zero,848
+        addiu v0,zero,6
+        bne s3,v0,done
+        nop
+        addiu s2,zero,164
+done:   lui at,0x52
+""")
+assert _empty_page_origin + len(_empty_page_words) * 4 == 0x1FF020
+out.extend(to_patch_lines(_empty_page_origin, _empty_page_words, 'GameMem::Setup empty-slot page sizes'))
 _e49[0] = 85
 out.append(f'{0x455DC0 + 85 * 64:08X} {bytes(_e49).hex()}   # rule table entry 85 = copy of entry 49 (FATAL 4-WAY TORNADO TAG)')
 # SURVIVAL list: add 8-MAN BATTLE ROYAL after 6-MAN BATTLE ROYAL (record 27) using the unused record 72:

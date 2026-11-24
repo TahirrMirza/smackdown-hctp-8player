@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 EXE_NAME = "SLUS_207.87"
 EXE_SIZE = 5652964
 ORIG_SHA1 = "d8ef8451378be669184de04478a550c8a46d02d6"      # original SLUS_207.87 (USA)
-PATCHED_SHA1 = "ca5789da194c0703bc7d041cfc51026910ac43ef"   # s75 distinct slot-8 marker candidate
+PATCHED_SHA1 = "cc64653119ae07fb818e8c27b7877cc9a609ca21"   # s77 referee-free Ladder with original referee page budget
 SECTOR = 2048
 LOAD_VADDR, LOAD_OFF, LOAD_SIZE = 0x100000, 0x80, 0x389800   # program header 0: only this part of the file is loaded
 
